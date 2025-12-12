@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { Loader2, CheckCircle2, Lock, ArrowRight, Activity, ShieldCheck, ExternalLink, ServerCog, KeyRound } from 'lucide-react';
+import { 
+  Loader2, CheckCircle2, Lock, ArrowRight, Activity, ShieldCheck, 
+  ExternalLink, ServerCog, KeyRound, X, LayoutGrid 
+} from 'lucide-react';
 
 // --- ⚙️ CONFIGURATION ---
 const OWNER_PHONE = "919876543210"; 
 
-// 🔐 PINS (The "Keys" to open the sheets)
+// 🔐 PINS
 const DEPARTMENT_PINS: Record<string, string> = {
   'floor': '1001',
   'basement': '2002',
@@ -17,7 +20,7 @@ const DEPARTMENT_PINS: Record<string, string> = {
   'it_check': '6006'
 };
 
-// 🔗 LINKS TO SHEETS (Hidden until PIN is entered)
+// 🔗 LINKS (PASTE YOUR GOOGLE SHEET LINKS HERE)
 const DEPARTMENT_SHEETS: Record<string, string> = {
   'floor': 'https://docs.google.com/spreadsheets/d/YOUR_FLOOR_SHEET_ID/edit',
   'basement': 'https://docs.google.com/spreadsheets/d/YOUR_BASEMENT_SHEET_ID/edit',
@@ -30,6 +33,7 @@ const DEPARTMENT_SHEETS: Record<string, string> = {
 export default function Home() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any[]>([]);
+  const [activeDeptId, setActiveDeptId] = useState<string | null>(null); // Controls which modal is open
   const [submitting, setSubmitting] = useState<string | null>(null);
 
   const fetchData = async () => {
@@ -59,8 +63,9 @@ export default function Home() {
         alert("Failed to submit.");
     } else {
         await fetchData();
+        setActiveDeptId(null); // Close modal on success
 
-        // --- IT AUTOMATION ---
+        // IT Automation
         if (deptId === 'it_check') {
             const text = `✅ *Daily Protocol Completed (IST)*\n\nDate: ${new Date().toLocaleDateString('en-IN')}\n\nAll Departments have updated their sheets.\nIT Verification Complete.\n\n- Sent via SOL App`;
             window.location.href = `https://wa.me/${OWNER_PHONE}?text=${encodeURIComponent(text)}`;
@@ -72,149 +77,194 @@ export default function Home() {
   const completedCount = data.filter(d => d.completed).length;
   const tasksCompleted = data.filter(d => d.id !== 'it_check' && d.completed).length;
   const progress = (completedCount / 6) * 100;
-  
-  const dateStr = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short' });
+  const dateStr = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' });
+
+  // Get the active department object if modal is open
+  const activeDept = data.find(d => d.id === activeDeptId);
 
   if (loading) return (
-    <div className="flex h-screen w-full items-center justify-center bg-[#0f172a] text-white">
-      <div className="flex flex-col items-center gap-4 animate-pulse">
-        <div className="h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-        <span className="text-sm font-bold tracking-widest uppercase text-blue-400">System Initializing...</span>
+    <div className="flex h-screen w-full items-center justify-center bg-[#000510] text-white">
+      <div className="flex flex-col items-center gap-6 animate-pulse">
+        <div className="h-16 w-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin shadow-[0_0_50px_rgba(59,130,246,0.5)]"></div>
+        <span className="text-sm font-bold tracking-[0.3em] uppercase text-blue-400">System Initializing</span>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] text-slate-800 font-sans pb-24">
+    <div className="min-h-screen bg-[#0f172a] text-slate-100 font-sans overflow-hidden relative selection:bg-blue-500 selection:text-white">
+      
+      {/* --- 🌌 ANIMATED BACKGROUND --- */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-[#0f172a] via-[#1e3a8a] to-transparent opacity-100" />
+        {/* Deep Space Base */}
+        <div className="absolute inset-0 bg-[#0f172a]" />
+        {/* Moving Nebula Orbs */}
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/20 rounded-full blur-[120px] animate-[pulse_10s_infinite]" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-indigo-600/20 rounded-full blur-[120px] animate-[pulse_15s_infinite_reverse]" />
+        {/* Grid Overlay */}
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
       </div>
 
-      <header className="relative z-10 pt-6 px-6 pb-20">
-        <div className="max-w-xl mx-auto flex items-center justify-between">
-          <div className="relative h-16 w-40 filter drop-shadow-lg">
+      {/* --- 🚀 TOP HUD (HEADS UP DISPLAY) --- */}
+      <header className="relative z-10 w-full px-8 py-6 flex items-center justify-between border-b border-white/5 bg-white/5 backdrop-blur-md">
+        <div className="flex items-center gap-6">
+           <div className="relative h-12 w-40 hover:brightness-125 transition-all">
              <Image src="/logo.webp" alt="Logo" fill className="object-contain object-left" priority />
-          </div>
-          <div className="text-right text-white">
-            <div className="text-3xl font-black tracking-tighter leading-none">{dateStr}</div>
-            <div className="text-xs font-bold text-blue-300 uppercase tracking-widest">IST</div>
-          </div>
+           </div>
+           <div className="hidden md:block h-8 w-px bg-white/10"></div>
+           <div className="hidden md:flex flex-col">
+             <span className="text-xs font-bold text-blue-400 tracking-widest uppercase">Protocol Status</span>
+             <span className="text-sm font-bold text-white tracking-wide">Daily Production Checklist</span>
+           </div>
         </div>
 
-        <div className="max-w-xl mx-auto mt-8">
-           <div className="flex justify-between items-end mb-2 text-white">
-             <div>
-               <h1 className="text-lg font-bold">Daily Protocol</h1>
-               <p className="text-xs text-blue-200 opacity-80">Authorized Personnel Only</p>
-             </div>
-             <div className="text-right">
-               <div className="text-3xl font-black leading-none">{Math.round(progress)}<span className="text-lg">%</span></div>
-             </div>
-           </div>
-           
-           <div className="h-3 w-full bg-blue-900/50 rounded-full backdrop-blur-sm overflow-hidden border border-white/10 relative">
-              <div 
-                className={`h-full transition-all duration-1000 ease-out shadow-[0_0_20px_rgba(239,68,68,0.8)] relative overflow-hidden
-                  ${completedCount === 6 ? 'bg-green-500' : 'bg-gradient-to-r from-red-600 to-red-400'}
-                `}
-                style={{ width: `${Math.max(progress, 5)}%` }}
-              >
-              </div>
-           </div>
+        <div className="flex items-center gap-6">
+          <div className="text-right hidden sm:block">
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">IST Date</div>
+            <div className="text-xl font-black text-white tracking-tight">{dateStr}</div>
+          </div>
+          {/* Circular Progress */}
+          <div className="relative h-14 w-14 flex items-center justify-center">
+            <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
+              <path className="text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="4" />
+              <path className="text-blue-500 drop-shadow-[0_0_10px_rgba(59,130,246,0.8)] transition-all duration-1000 ease-out" strokeDasharray={`${progress}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="4" />
+            </svg>
+            <span className="absolute text-[10px] font-bold">{Math.round(progress)}%</span>
+          </div>
         </div>
       </header>
 
-      <main className="relative z-20 px-4 -mt-12 max-w-xl mx-auto space-y-5">
-        {data.map((dept) => {
-          const isIT = dept.id === 'it_check';
-          const isLocked = isIT ? tasksCompleted < 5 : false;
-          const isActive = !dept.completed && !isLocked;
+      {/* --- 🎛️ MAIN COMMAND GRID --- */}
+      <main className="relative z-10 container mx-auto px-6 py-10 h-[calc(100vh-100px)] flex flex-col justify-center">
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 h-full max-h-[600px]">
+          {data.map((dept, index) => {
+            const isIT = dept.id === 'it_check';
+            const isLocked = isIT ? tasksCompleted < 5 : false;
+            const isCompleted = dept.completed;
+            
+            return (
+              <button
+                key={dept.id}
+                disabled={isLocked}
+                onClick={() => !isLocked && setActiveDeptId(dept.id)}
+                className={`
+                  group relative w-full h-full min-h-[160px] rounded-2xl p-6 text-left transition-all duration-500 border backdrop-blur-md flex flex-col justify-between overflow-hidden
+                  ${isCompleted 
+                    ? 'bg-blue-900/20 border-blue-500/30 hover:bg-blue-900/40 hover:border-blue-400/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.2)]' 
+                    : isLocked 
+                      ? 'bg-slate-900/40 border-slate-800 cursor-not-allowed opacity-60 grayscale' 
+                      : 'bg-slate-800/40 border-slate-700 hover:bg-slate-700/50 hover:border-slate-500 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(255,255,255,0.1)]'
+                  }
+                `}
+              >
+                {/* Background Glow Effect */}
+                {!isLocked && !isCompleted && (
+                   <div className="absolute -right-10 -top-10 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl group-hover:bg-blue-400/30 transition-all"></div>
+                )}
 
-          return (
-            <div 
-              key={dept.id}
-              className={`
-                relative rounded-2xl transition-all duration-500 ease-out overflow-hidden
-                ${isActive 
-                  ? 'bg-white shadow-xl scale-[1.01] ring-1 ring-red-100 translate-y-0 z-10' 
-                  : 'bg-white/90 shadow-sm border border-slate-100 hover:bg-white translate-y-2 z-0'
-                }
-                ${isLocked ? 'opacity-60 grayscale-[50%] bg-slate-50' : ''}
-              `}
-            >
-              {isActive && <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-red-500"></div>}
-
-              <div className="p-5">
-                <div className="flex items-center gap-4 mb-4">
+                <div className="flex justify-between items-start w-full">
                   <div className={`
-                    h-12 w-12 rounded-xl flex items-center justify-center text-lg shadow-inner
-                    ${dept.completed ? 'bg-green-100 text-green-700' : isActive ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-400'}
+                    p-3 rounded-xl transition-all duration-300
+                    ${isCompleted ? 'bg-blue-500/20 text-blue-400' : isLocked ? 'bg-slate-800 text-slate-500' : 'bg-white/10 text-white group-hover:bg-blue-600 group-hover:text-white'}
                   `}>
-                    {dept.completed ? <CheckCircle2 size={24} /> : isIT ? <ServerCog size={24}/> : isActive ? <Activity size={24} className="animate-pulse"/> : <Lock size={22} />}
+                    {isCompleted ? <CheckCircle2 size={24} /> : isIT ? <ServerCog size={24}/> : isLocked ? <Lock size={24} /> : <Activity size={24} />}
                   </div>
-
-                  <div className="flex-1">
-                    <h3 className={`font-bold text-lg leading-tight ${dept.completed ? 'text-slate-800' : isActive ? 'text-slate-900' : 'text-slate-500'}`}>
-                      {dept.name}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      {dept.completed && <span className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded uppercase">Submitted</span>}
-                      {isActive && <span className="text-[10px] font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded uppercase animate-pulse">Pending Action</span>}
-                      {isLocked && <span className="text-[10px] font-bold bg-slate-200 text-slate-500 px-2 py-0.5 rounded uppercase">Locked</span>}
-                    </div>
+                  
+                  {/* Status Pill */}
+                  <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border
+                    ${isCompleted ? 'bg-blue-900/40 border-blue-500/30 text-blue-300' : isLocked ? 'bg-slate-900 border-slate-700 text-slate-500' : 'bg-red-500/20 border-red-500/30 text-red-300 animate-pulse'}
+                  `}>
+                    {isCompleted ? 'Completed' : isLocked ? 'Locked' : 'Action Req.'}
                   </div>
                 </div>
 
-                <div className="pl-[60px]">
-                  {dept.completed ? (
-                    <div className="bg-slate-50 rounded-lg p-3 text-sm border border-slate-100 flex items-start gap-3">
-                      <ShieldCheck size={16} className="text-green-600 mt-0.5 shrink-0" />
-                      <div>
-                        <div className="text-slate-900 font-semibold">{dept.supervisor}</div>
-                        <div className="text-xs text-slate-400 font-mono mt-0.5">{dept.timestamp}</div>
-                      </div>
-                    </div>
-                  ) : isActive ? (
-                    <div className="animate-in slide-in-from-bottom-2 fade-in duration-500">
-                      <ActiveForm 
-                        dept={dept} 
-                        requiredPin={DEPARTMENT_PINS[dept.id]} 
-                        sheetLink={DEPARTMENT_SHEETS[dept.id]} // Pass the link here
-                        onSubmit={handleSubmit} 
-                        isSubmitting={submitting === dept.id} 
-                      />
+                <div>
+                  <h3 className="text-lg md:text-xl font-bold text-white mb-1 group-hover:text-blue-200 transition-colors">
+                    {dept.name}
+                  </h3>
+                  {isCompleted ? (
+                    <div className="text-xs text-blue-300/80 font-mono">
+                      Supervisor: {dept.supervisor}
                     </div>
                   ) : (
-                    <div className="text-xs text-slate-400 italic flex items-center gap-2 h-8">Waiting for departments to finish...</div>
+                    <div className="text-xs text-slate-400 group-hover:text-slate-300 flex items-center gap-2">
+                       {isLocked ? 'Waiting for sequence...' : 'Click to Update Status'}
+                       {!isLocked && <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />}
+                    </div>
                   )}
                 </div>
-              </div>
-            </div>
-          );
-        })}
-
-        {completedCount === 6 && (
-          <div className="text-center py-8 animate-in zoom-in duration-500">
-            <h2 className="text-xl font-black text-slate-800">Complete</h2>
-            <p className="text-slate-500 text-sm">Owner has been notified.</p>
-          </div>
-        )}
+              </button>
+            );
+          })}
+        </div>
       </main>
+
+      {/* --- 🪄 ACTION MODAL (The Popup) --- */}
+      {activeDept && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
+            onClick={() => setActiveDeptId(null)}
+          />
+
+          {/* Modal Content */}
+          <div className="relative w-full max-w-lg bg-[#0f172a] border border-slate-700 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in zoom-in-95 duration-300">
+            {/* Header */}
+            <div className="bg-slate-900/50 p-6 border-b border-slate-800 flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-bold text-white">{activeDept.name}</h2>
+                <p className="text-xs text-slate-400 uppercase tracking-wider mt-1">Status Update Protocol</p>
+              </div>
+              <button onClick={() => setActiveDeptId(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                <X size={20} className="text-slate-400" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6">
+              {activeDept.completed ? (
+                <div className="text-center py-8">
+                  <div className="inline-flex p-4 bg-green-500/20 rounded-full text-green-400 mb-4">
+                    <CheckCircle2 size={48} />
+                  </div>
+                  <h3 className="text-white font-bold text-lg">Already Submitted</h3>
+                  <p className="text-slate-400 text-sm mt-2">
+                    Supervisor: <span className="text-white">{activeDept.supervisor}</span>
+                    <br/>
+                    Time: {activeDept.timestamp}
+                  </p>
+                </div>
+              ) : (
+                <ActiveForm 
+                   dept={activeDept} 
+                   requiredPin={DEPARTMENT_PINS[activeDept.id]} 
+                   sheetLink={DEPARTMENT_SHEETS[activeDept.id]}
+                   onSubmit={handleSubmit}
+                   isSubmitting={submitting === activeDept.id}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
 
-// --- SECURE FORM COMPONENT ---
+// --- ✨ MODERN FORM COMPONENT ---
 function ActiveForm({ dept, requiredPin, sheetLink, onSubmit, isSubmitting }: any) {
   const [name, setName] = useState('');
   const [comment, setComment] = useState('');
   const [pin, setPin] = useState('');
-  const [isVerified, setIsVerified] = useState(false); // <--- Controls visibility
+  const [isVerified, setIsVerified] = useState(false);
   const [error, setError] = useState('');
 
   const handleVerify = () => {
     if (pin !== requiredPin) {
-      setError('Incorrect PIN. Access Denied.');
+      setError('Incorrect PIN');
       return;
     }
     setIsVerified(true);
@@ -222,105 +272,99 @@ function ActiveForm({ dept, requiredPin, sheetLink, onSubmit, isSubmitting }: an
   };
 
   const handleFinalSubmit = () => {
-    if (!name.trim()) {
-        setError("Supervisor Name is required.");
-        return;
-    }
+    if (!name.trim()) { setError("Name Required"); return; }
     onSubmit(dept.id, name, comment);
   };
 
-  // STATE 1: LOCKED (Show PIN Input only)
+  // 🔒 STEP 1: PIN ENTRY
   if (!isVerified) {
     return (
-      <div className="mt-2 space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
-        <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase">
-             <KeyRound size={14} /> 
-             <span>Verify Identity to Access Sheet</span>
+      <div className="space-y-6 text-center">
+        <div className="mx-auto w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center text-slate-400">
+          <KeyRound size={24} />
         </div>
-        <div className="flex gap-3">
-            <div className="relative flex-1">
-                <input 
-                  type="password"
-                  maxLength={4}
-                  className="peer w-full h-10 bg-white border-2 border-slate-200 rounded-lg text-center text-sm font-bold text-slate-900 tracking-[0.3em] focus:border-red-500 focus:outline-none transition-all"
-                  placeholder="••••"
-                  value={pin}
-                  onChange={(e) => { setPin(e.target.value); setError(''); }}
-                  onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
-                />
-            </div>
-            <button 
-                onClick={handleVerify}
-                className="bg-slate-800 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-black transition-colors"
-            >
-                UNLOCK
-            </button>
+        <div>
+          <h3 className="text-white font-bold">Identity Verification</h3>
+          <p className="text-slate-400 text-xs mt-1">Enter Department PIN to Access</p>
         </div>
-        {error && <div className="text-xs text-red-500 font-bold animate-pulse">{error}</div>}
+        
+        <div className="flex justify-center gap-2">
+          <input 
+            type="password"
+            maxLength={4}
+            className="w-48 h-12 bg-slate-900 border border-slate-700 rounded-xl text-center text-xl font-bold text-white tracking-[0.5em] focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all placeholder:tracking-normal placeholder:text-sm placeholder:font-normal"
+            placeholder="ENTER PIN"
+            value={pin}
+            onChange={(e) => { setPin(e.target.value); setError(''); }}
+            onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
+          />
+        </div>
+        <button onClick={handleVerify} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)]">
+          VERIFY ACCESS
+        </button>
+        {error && <div className="text-red-400 text-xs font-bold animate-pulse">{error}</div>}
       </div>
     );
   }
 
-  // STATE 2: UNLOCKED (Show Link and Submit Form)
+  // 🔓 STEP 2: WORKSPACE
   return (
-    <div className="space-y-5 pt-2 animate-in fade-in zoom-in duration-300">
+    <div className="space-y-5 animate-in slide-in-from-bottom-5 duration-300">
       
-      {/* 1. OPEN SHEET BUTTON (Only visible after PIN) */}
       {dept.id !== 'it_check' && (
-        <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl">
-            <a 
-              href={sheetLink} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full bg-[#1e3a8a] text-white font-bold text-sm py-3 rounded-lg shadow-blue-900/20 shadow-lg hover:bg-blue-900 transition-all transform hover:scale-[1.02]"
-            >
-              <ExternalLink size={16} />
-              OPEN {dept.name.toUpperCase()} SHEET
-            </a>
-            <p className="text-[10px] text-center text-blue-400 mt-2 font-medium">
-                Complete your work in the sheet, then fill the form below.
-            </p>
-        </div>
+        <a 
+          href={sheetLink} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="group flex items-center justify-between w-full bg-[#1e293b] border border-slate-700 hover:border-blue-500/50 p-4 rounded-xl transition-all hover:shadow-[0_0_20px_rgba(59,130,246,0.15)]"
+        >
+          <div className="flex items-center gap-3">
+             <div className="p-2 bg-green-500/20 text-green-400 rounded-lg group-hover:scale-110 transition-transform"><LayoutGrid size={20}/></div>
+             <div className="text-left">
+               <div className="text-sm font-bold text-white group-hover:text-blue-300 transition-colors">Open Work Sheet</div>
+               <div className="text-[10px] text-slate-400">Google Sheets • External</div>
+             </div>
+          </div>
+          <ExternalLink size={16} className="text-slate-500 group-hover:text-white transition-colors"/>
+        </a>
       )}
 
-      {/* 2. SUBMISSION FORM */}
-      <div className="grid gap-5 md:grid-cols-2">
-          <div className="relative">
-            <input 
-              id={`name-${dept.id}`}
-              className="peer w-full h-12 bg-transparent border-b-2 border-slate-300 text-sm font-bold text-slate-900 placeholder-transparent focus:border-red-500 focus:outline-none transition-all pt-4"
-              placeholder="Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-            <label htmlFor={`name-${dept.id}`} className="pointer-events-none absolute left-0 -top-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-slate-500 peer-focus:-top-1 peer-focus:text-[10px] peer-focus:text-red-500">
-              Supervisor Name
-            </label>
-          </div>
-          
-          <div className="relative">
-            <input 
-              id={`comment-${dept.id}`}
-              className="peer w-full h-12 bg-transparent border-b-2 border-slate-300 text-sm font-medium text-slate-900 placeholder-transparent focus:border-blue-500 focus:outline-none transition-all pt-4"
-              placeholder="Comments"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-            />
-            <label htmlFor={`comment-${dept.id}`} className="pointer-events-none absolute left-0 -top-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-slate-500 peer-focus:-top-1 peer-focus:text-[10px] peer-focus:text-blue-500">
-              Comments (Optional)
-            </label>
-          </div>
+      <div className="h-px bg-slate-800 w-full my-4"></div>
+
+      <div className="space-y-4">
+        <div className="relative">
+           <input 
+             className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none transition-colors peer placeholder-transparent"
+             id="form-name" placeholder="Name"
+             value={name} onChange={e => setName(e.target.value)}
+           />
+           <label htmlFor="form-name" className="absolute left-4 top-[-10px] bg-[#0f172a] px-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-focus:top-[-10px] peer-focus:text-[10px] peer-focus:text-blue-500 pointer-events-none">
+             Supervisor Name
+           </label>
+        </div>
+
+        <div className="relative">
+           <input 
+             className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none transition-colors peer placeholder-transparent"
+             id="form-comment" placeholder="Comment"
+             value={comment} onChange={e => setComment(e.target.value)}
+           />
+           <label htmlFor="form-comment" className="absolute left-4 top-[-10px] bg-[#0f172a] px-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider transition-all peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-focus:top-[-10px] peer-focus:text-[10px] peer-focus:text-blue-500 pointer-events-none">
+             Comments (Optional)
+           </label>
+        </div>
       </div>
 
       <button 
-          disabled={!name.trim() || isSubmitting}
+          disabled={isSubmitting}
           onClick={handleFinalSubmit}
-          className={`w-full h-12 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all transform active:scale-[0.98] shadow-lg ${!name.trim() ? 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none' : 'bg-green-600 text-white shadow-green-900/20 hover:bg-green-700'}`}
+          className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-xl transition-all shadow-[0_0_20px_rgba(22,163,74,0.3)] flex items-center justify-center gap-2 mt-4"
       >
-          {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <><span>MARK WORK AS DONE</span><ArrowRight size={16} /></>}
+          {isSubmitting ? <Loader2 className="animate-spin" size={20}/> : (
+            <><span>CONFIRM COMPLETION</span><CheckCircle2 size={18} /></>
+          )}
       </button>
-      
-      {error && <div className="text-center text-xs text-red-500 font-bold animate-pulse">{error}</div>}
+      {error && <div className="text-center text-xs text-red-400 font-bold">{error}</div>}
     </div>
   );
 }
