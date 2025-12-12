@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 // --- ⚙️ CONFIGURATION ---
-const OWNER_PHONE = "919876543210"; 
+const OWNER_PHONE = "917457001218"; 
 
 const DEPARTMENT_PINS: Record<string, string> = {
   'floor': '1001',
@@ -17,6 +17,16 @@ const DEPARTMENT_PINS: Record<string, string> = {
   'stock': '4004',
   'attendance': '5005',
   'it_check': '6006'
+};
+
+// INITIAL DEFAULT LINKS (Used only if DB is empty)
+const DEFAULT_LINKS: Record<string, string> = {
+  'floor': 'https://docs.google.com/spreadsheets/d/1SHR6Oanaz-h-iYZBRSwlqci4PHuVRxpLG92MEcGSB9E/edit?gid=1312897317#gid=1312897317',
+  'basement': 'https://docs.google.com/spreadsheets/d/1SHR6Oanaz-h-iYZBRSwlqci4PHuVRxpLG92MEcGSB9E/edit?gid=0#gid=0',
+  'quality': 'https://docs.google.com/spreadsheets/d/1Vf86RYqPH82qrEq1z2QPA99AkVIndP8J/edit?gid=2024287451#gid=2024287451',
+  'stock': 'https://docs.google.com/spreadsheets/d/12siBNbDOtmyAqIRH5cgc9APtw3rIEqBeZTzBRgiBrsg/edit?gid=580761467&usp=gmail#gid=580761467',
+  'attendance': 'https://docs.google.com/spreadsheets/d/1SHR6Oanaz-h-iYZBRSwlqci4PHuVRxpLG92MEcGSB9E/edit?gid=1751300469#gid=1751300469',
+  'it_check': '#' 
 };
 
 export default function Home() {
@@ -93,6 +103,9 @@ export default function Home() {
   const progress = (completedCount / 6) * 100;
   const dateStr = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' });
   const activeDept = data.find(d => d.id === activeDeptId);
+
+  // Logic: Use Saved Link from API, or Fallback to Default
+  const currentLink = activeDept?.savedLink || DEFAULT_LINKS[activeDept?.id || ''] || '';
 
   if (loading) return (
     <div className="flex h-screen w-full items-center justify-center bg-[#000510] text-white">
@@ -213,7 +226,7 @@ export default function Home() {
                   <p className="text-slate-400 text-sm mt-2">By: {activeDept.supervisor}<br/>Time: {activeDept.timestamp}</p>
                 </div>
               ) : (
-                <ActiveForm dept={activeDept} requiredPin={DEPARTMENT_PINS[activeDept.id]} onSubmit={handleSubmit} isSubmitting={submitting === activeDept.id}/>
+                <ActiveForm dept={activeDept} requiredPin={DEPARTMENT_PINS[activeDept.id]} savedLink={currentLink} onSubmit={handleSubmit} isSubmitting={submitting === activeDept.id}/>
               )}
             </div>
           </div>
@@ -223,10 +236,11 @@ export default function Home() {
   );
 }
 
-function ActiveForm({ dept, requiredPin, onSubmit, isSubmitting }: any) {
+// --- FORM COMPONENT ---
+function ActiveForm({ dept, requiredPin, savedLink, onSubmit, isSubmitting }: any) {
   const [name, setName] = useState('');
   const [comment, setComment] = useState('');
-  const [link, setLink] = useState(dept.currentLink || ''); // PRE-FILL WITH SAVED LINK
+  const [link, setLink] = useState(''); // New Link
   const [pin, setPin] = useState('');
   const [isVerified, setIsVerified] = useState(false);
   const [error, setError] = useState('');
@@ -259,11 +273,12 @@ function ActiveForm({ dept, requiredPin, onSubmit, isSubmitting }: any) {
   return (
     <div className="space-y-5 animate-in slide-in-from-bottom-5 duration-300">
       
-      {dept.id !== 'it_check' && link && (
-        <a href={link} target="_blank" rel="noopener noreferrer" className="group flex items-center justify-between w-full bg-[#1e293b] border border-slate-700 hover:border-blue-500/50 p-4 rounded-xl transition-all hover:shadow-[0_0_20px_rgba(59,130,246,0.15)]">
+      {/* 1. BUTTON: USES SAVED LINK */}
+      {dept.id !== 'it_check' && (
+        <a href={savedLink || '#'} target="_blank" rel="noopener noreferrer" className="group flex items-center justify-between w-full bg-[#1e293b] border border-slate-700 hover:border-blue-500/50 p-4 rounded-xl transition-all hover:shadow-[0_0_20px_rgba(59,130,246,0.15)]">
           <div className="flex items-center gap-3">
              <div className="p-2 bg-green-500/20 text-green-400 rounded-lg group-hover:scale-110 transition-transform"><LayoutGrid size={20}/></div>
-             <div className="text-left"><div className="text-sm font-bold text-white group-hover:text-blue-300 transition-colors">Open Work Sheet</div><div className="text-[10px] text-slate-400">Latest Saved Link</div></div>
+             <div className="text-left"><div className="text-sm font-bold text-white group-hover:text-blue-300 transition-colors">Open Last Work Sheet</div><div className="text-[10px] text-slate-400">Click to view previous work</div></div>
           </div>
           <ExternalLink size={16} className="text-slate-500 group-hover:text-white transition-colors"/>
         </a>
@@ -271,6 +286,7 @@ function ActiveForm({ dept, requiredPin, onSubmit, isSubmitting }: any) {
 
       <div className="h-px bg-slate-800 w-full my-4"></div>
 
+      {/* 2. FORM: USES NEW LINK INPUT */}
       <div className="space-y-4">
         <div className="grid gap-5 md:grid-cols-2">
             <div className="relative"><input className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none peer placeholder-transparent" id="n" placeholder="N" value={name} onChange={e => setName(e.target.value)}/><label htmlFor="n" className="absolute left-4 top-[-10px] bg-[#0f172a] px-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider transition-all peer-placeholder-shown:top-3.5 peer-focus:top-[-10px] peer-focus:text-blue-500 pointer-events-none">Supervisor Name</label></div>
@@ -283,7 +299,7 @@ function ActiveForm({ dept, requiredPin, onSubmit, isSubmitting }: any) {
                     <div className="p-3 bg-green-500/10 rounded-xl text-green-400 shrink-0"><LinkIcon size={20} /></div>
                     <div className="relative w-full">
                         <input className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:border-green-500 focus:outline-none peer placeholder-transparent" id="l" placeholder="L" value={link} onChange={e => setLink(e.target.value)}/>
-                        <label htmlFor="l" className="absolute left-4 top-[-10px] bg-[#0f172a] px-1 text-[10px] font-bold text-green-500 uppercase tracking-wider transition-all peer-placeholder-shown:top-3.5 peer-focus:top-[-10px] pointer-events-none">Update Daily Sheet Link</label>
+                        <label htmlFor="l" className="absolute left-4 top-[-10px] bg-[#0f172a] px-1 text-[10px] font-bold text-green-500 uppercase tracking-wider transition-all peer-placeholder-shown:top-3.5 peer-focus:top-[-10px] pointer-events-none">Paste New Daily Sheet Link</label>
                     </div>
                 </div>
             </div>

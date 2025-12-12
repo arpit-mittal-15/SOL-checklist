@@ -22,20 +22,19 @@ async function getAuthSheets() {
   return google.sheets({ version: 'v4', auth: await auth.getClient() as any });
 }
 
-// --- 🔗 DYNAMIC LINK MANAGEMENT ---
+// --- 🔗 LINK MEMORY SYSTEM ---
 export async function getStoredLinks() {
   const sheets = await getAuthSheets();
   const spreadsheetId = process.env.GOOGLE_SHEET_ID;
 
   try {
-    // 1. Try to read the config sheet
+    // Try to read the config sheet
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
       range: `${CONFIG_SHEET}!A:B`,
     });
 
     const rows = response.data.values || [];
-    // Convert rows to a simple object: { 'floor': 'https://...', 'basement': '...' }
     const links: Record<string, string> = {};
     rows.forEach(row => {
       if (row[0] && row[1]) links[row[0]] = row[1];
@@ -43,22 +42,20 @@ export async function getStoredLinks() {
     return links;
 
   } catch (e) {
-    // 2. If sheet doesn't exist, create it with defaults
-    console.log("Config sheet missing, creating...");
-    await sheets.spreadsheets.batchUpdate({
-      spreadsheetId,
-      requestBody: { requests: [{ addSheet: { properties: { title: CONFIG_SHEET } } }] }
-    });
-    
-    // Add default rows
-    const defaults = DEPARTMENTS.map(d => [d.id, ""]); // Empty links initially
-    await sheets.spreadsheets.values.update({
-      spreadsheetId,
-      range: `${CONFIG_SHEET}!A1`,
-      valueInputOption: 'USER_ENTERED',
-      requestBody: { values: [["Dept_ID", "Latest_Link"], ...defaults] }
-    });
-    
+    // If missing, create it
+    try {
+        await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: { requests: [{ addSheet: { properties: { title: CONFIG_SHEET } } }] }
+        });
+        // Headers
+        await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${CONFIG_SHEET}!A1`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [["Dept_ID", "Last_Saved_Link"]] }
+        });
+    } catch (err) { /* Ignore if exists */ }
     return {};
   }
 }
@@ -67,18 +64,16 @@ export async function updateStoredLink(deptId: string, newLink: string) {
   const sheets = await getAuthSheets();
   const spreadsheetId = process.env.GOOGLE_SHEET_ID;
   
-  // 1. Get current config rows
+  // Get all rows to find the index
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: `${CONFIG_SHEET}!A:A`, // Just get IDs
+    range: `${CONFIG_SHEET}!A:A`,
   });
   const rows = response.data.values || [];
-  
-  // 2. Find row number for this department
   let rowIndex = rows.findIndex(row => row[0] === deptId);
   
   if (rowIndex === -1) {
-    // If not found, append it
+    // Add new row
     await sheets.spreadsheets.values.append({
       spreadsheetId,
       range: `${CONFIG_SHEET}!A:A`,
@@ -86,7 +81,7 @@ export async function updateStoredLink(deptId: string, newLink: string) {
       requestBody: { values: [[deptId, newLink]] }
     });
   } else {
-    // 3. Update the specific cell (Column B is index 1, Row is index + 1)
+    // Update existing row (Column B)
     await sheets.spreadsheets.values.update({
       spreadsheetId,
       range: `${CONFIG_SHEET}!B${rowIndex + 1}`,
@@ -96,7 +91,7 @@ export async function updateStoredLink(deptId: string, newLink: string) {
   }
 }
 
-// --- STANDARD FUNCTIONS ---
+// --- STANDARD OPERATIONS ---
 export async function getTodayRow(dateStr: string) {
   const sheets = await getAuthSheets();
   const response = await sheets.spreadsheets.values.get({
@@ -132,6 +127,7 @@ export async function updateDepartmentData(rowIndex: number, colIndex: number, d
   });
 }
 
+// --- 🔍 FULL SHEET VALIDATION ---
 export async function checkSheetForToday(sheetLink: string) {
   const sheets = await getAuthSheets();
   const matches = sheetLink.match(/\/d\/([a-zA-Z0-9-_]+)/);
