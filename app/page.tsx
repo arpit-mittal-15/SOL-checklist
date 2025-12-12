@@ -33,7 +33,7 @@ const DEPARTMENT_SHEETS: Record<string, string> = {
 export default function Home() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any[]>([]);
-  const [activeDeptId, setActiveDeptId] = useState<string | null>(null); // Controls which modal is open
+  const [activeDeptId, setActiveDeptId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<string | null>(null);
 
   const fetchData = async () => {
@@ -54,16 +54,27 @@ export default function Home() {
   const handleSubmit = async (deptId: string, name: string, comment: string) => {
     setSubmitting(deptId);
     
+    // Send the link to the backend for verification
+    const currentLink = deptId === 'it_check' ? '' : DEPARTMENT_SHEETS[deptId];
+
     const res = await fetch('/api/checklist', {
       method: 'POST',
-      body: JSON.stringify({ rowIndex: 0, deptId, supervisor: name, comment }),
+      body: JSON.stringify({ 
+          rowIndex: 0, 
+          deptId, 
+          supervisor: name, 
+          comment,
+          sheetLink: currentLink 
+      }),
     });
 
+    const json = await res.json();
+
     if (!res.ok) {
-        alert("Failed to submit.");
+        alert(json.error || "Failed to submit.");
     } else {
         await fetchData();
-        setActiveDeptId(null); // Close modal on success
+        setActiveDeptId(null); 
 
         // IT Automation
         if (deptId === 'it_check') {
@@ -79,7 +90,6 @@ export default function Home() {
   const progress = (completedCount / 6) * 100;
   const dateStr = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' });
 
-  // Get the active department object if modal is open
   const activeDept = data.find(d => d.id === activeDeptId);
 
   if (loading) return (
@@ -94,18 +104,15 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-100 font-sans overflow-hidden relative selection:bg-blue-500 selection:text-white">
       
-      {/* --- 🌌 ANIMATED BACKGROUND --- */}
+      {/* Background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        {/* Deep Space Base */}
         <div className="absolute inset-0 bg-[#0f172a]" />
-        {/* Moving Nebula Orbs */}
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/20 rounded-full blur-[120px] animate-[pulse_10s_infinite]" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-indigo-600/20 rounded-full blur-[120px] animate-[pulse_15s_infinite_reverse]" />
-        {/* Grid Overlay */}
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
       </div>
 
-      {/* --- 🚀 TOP HUD (HEADS UP DISPLAY) --- */}
+      {/* Header */}
       <header className="relative z-10 w-full px-8 py-6 flex items-center justify-between border-b border-white/5 bg-white/5 backdrop-blur-md">
         <div className="flex items-center gap-6">
            <div className="relative h-12 w-40 hover:brightness-125 transition-all">
@@ -123,7 +130,6 @@ export default function Home() {
             <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">IST Date</div>
             <div className="text-xl font-black text-white tracking-tight">{dateStr}</div>
           </div>
-          {/* Circular Progress */}
           <div className="relative h-14 w-14 flex items-center justify-center">
             <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
               <path className="text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="4" />
@@ -134,11 +140,10 @@ export default function Home() {
         </div>
       </header>
 
-      {/* --- 🎛️ MAIN COMMAND GRID --- */}
+      {/* Main Grid */}
       <main className="relative z-10 container mx-auto px-6 py-10 h-[calc(100vh-100px)] flex flex-col justify-center">
-        
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 h-full max-h-[600px]">
-          {data.map((dept, index) => {
+          {data.map((dept) => {
             const isIT = dept.id === 'it_check';
             const isLocked = isIT ? tasksCompleted < 5 : false;
             const isCompleted = dept.completed;
@@ -158,7 +163,6 @@ export default function Home() {
                   }
                 `}
               >
-                {/* Background Glow Effect */}
                 {!isLocked && !isCompleted && (
                    <div className="absolute -right-10 -top-10 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl group-hover:bg-blue-400/30 transition-all"></div>
                 )}
@@ -171,7 +175,6 @@ export default function Home() {
                     {isCompleted ? <CheckCircle2 size={24} /> : isIT ? <ServerCog size={24}/> : isLocked ? <Lock size={24} /> : <Activity size={24} />}
                   </div>
                   
-                  {/* Status Pill */}
                   <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border
                     ${isCompleted ? 'bg-blue-900/40 border-blue-500/30 text-blue-300' : isLocked ? 'bg-slate-900 border-slate-700 text-slate-500' : 'bg-red-500/20 border-red-500/30 text-red-300 animate-pulse'}
                   `}>
@@ -200,18 +203,15 @@ export default function Home() {
         </div>
       </main>
 
-      {/* --- 🪄 ACTION MODAL (The Popup) --- */}
+      {/* Modal Popup */}
       {activeDept && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop */}
           <div 
             className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
             onClick={() => setActiveDeptId(null)}
           />
 
-          {/* Modal Content */}
           <div className="relative w-full max-w-lg bg-[#0f172a] border border-slate-700 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in zoom-in-95 duration-300">
-            {/* Header */}
             <div className="bg-slate-900/50 p-6 border-b border-slate-800 flex justify-between items-center">
               <div>
                 <h2 className="text-xl font-bold text-white">{activeDept.name}</h2>
@@ -222,7 +222,6 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Body */}
             <div className="p-6">
               {activeDept.completed ? (
                 <div className="text-center py-8">
@@ -249,12 +248,11 @@ export default function Home() {
           </div>
         </div>
       )}
-
     </div>
   );
 }
 
-// --- ✨ MODERN FORM COMPONENT ---
+// Form Component
 function ActiveForm({ dept, requiredPin, sheetLink, onSubmit, isSubmitting }: any) {
   const [name, setName] = useState('');
   const [comment, setComment] = useState('');
@@ -276,7 +274,6 @@ function ActiveForm({ dept, requiredPin, sheetLink, onSubmit, isSubmitting }: an
     onSubmit(dept.id, name, comment);
   };
 
-  // 🔒 STEP 1: PIN ENTRY
   if (!isVerified) {
     return (
       <div className="space-y-6 text-center">
@@ -307,7 +304,6 @@ function ActiveForm({ dept, requiredPin, sheetLink, onSubmit, isSubmitting }: an
     );
   }
 
-  // 🔓 STEP 2: WORKSPACE
   return (
     <div className="space-y-5 animate-in slide-in-from-bottom-5 duration-300">
       
