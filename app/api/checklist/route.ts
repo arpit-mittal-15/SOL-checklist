@@ -48,23 +48,28 @@ export async function POST(req: Request) {
     const dept = DEPARTMENTS.find(d => d.id === deptId);
     if (!dept) return NextResponse.json({ error: 'Invalid Dept' }, { status: 400 });
 
-    // --- 🔍 VALIDATION STEP ---
-    // If it's NOT IT, we must check if their sheet has today's date
     if (deptId !== 'it_check') {
-        if (!sheetLink) return NextResponse.json({ error: "Configuration Error: Link missing" }, { status: 400 });
-        
+        if (!sheetLink) return NextResponse.json({ error: "Link missing" }, { status: 400 });
         const isValid = await checkSheetForToday(sheetLink);
-        
-        if (!isValid) {
-            return NextResponse.json({ 
-                error: `⚠️ Data Missing! We could not find today's date in your sheet.` 
-            }, { status: 400 });
-        }
+        if (!isValid) return NextResponse.json({ error: `⚠️ Data Missing! Today's date not found in sheet.` }, { status: 400 });
     }
 
-    const timestamp = new Date().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: true });
+    // --- ⏰ TIME LOGIC (7:30 PM CUTOFF) ---
+    const now = new Date();
+    // Get numeric hour/minute in IST
+    const istTimeStr = now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: false }); // "19:35:00"
+    const [hours, minutes] = istTimeStr.split(':').map(Number);
 
-    await updateDepartmentData(rowIndex, dept.startCol, ['TRUE', supervisor, timestamp, comment]);
+    // Generate Display Timestamp
+    let displayTime = now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: true });
+
+    // CHECK FOR LATE SUBMISSION (> 19:30)
+    // Late if Hour > 19 OR (Hour is 19 AND Minute > 30)
+    if (hours > 19 || (hours === 19 && minutes > 30)) {
+        displayTime = `${displayTime} 🔴 LATE`; // Mark in sheet
+    }
+
+    await updateDepartmentData(rowIndex, dept.startCol, ['TRUE', supervisor, displayTime, comment]);
     
     return NextResponse.json({ success: true });
   } catch (error) {

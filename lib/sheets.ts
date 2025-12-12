@@ -1,12 +1,12 @@
 import { google } from 'googleapis';
 
 export const DEPARTMENTS = [
-  { id: 'floor', name: 'Production (First Floor)', startCol: 1 },
-  { id: 'basement', name: 'Production (Basement)', startCol: 5 },
-  { id: 'quality', name: 'Quality Check', startCol: 9 },
-  { id: 'stock', name: 'Stock Availability', startCol: 13 },
-  { id: 'attendance', name: 'Attendance', startCol: 17 },
-  { id: 'it_check', name: 'IT Final Verification', startCol: 21 }
+  { id: 'floor', name: 'Production (First Floor)', startCol: 1, sheetName: 'Data_Floor' },
+  { id: 'basement', name: 'Production (Basement)', startCol: 5, sheetName: 'Data_Basement' },
+  { id: 'quality', name: 'Quality Check', startCol: 9, sheetName: 'Data_Quality' },
+  { id: 'stock', name: 'Stock Availability', startCol: 13, sheetName: 'Data_Stock' },
+  { id: 'attendance', name: 'Attendance', startCol: 17, sheetName: 'Data_Attendance' },
+  { id: 'it_check', name: 'IT Final Verification', startCol: 21, sheetName: 'Data_IT' }
 ];
 
 async function getAuthSheets() {
@@ -34,7 +34,6 @@ export async function getTodayRow(dateStr: string) {
 
 export async function createTodayRow(dateStr: string) {
   const sheets = await getAuthSheets();
-  // Create row with enough empty slots for 6 departments
   await sheets.spreadsheets.values.append({
     spreadsheetId: process.env.GOOGLE_SHEET_ID,
     range: 'Sheet1!A:A',
@@ -60,22 +59,17 @@ export async function updateDepartmentData(rowIndex: number, colIndex: number, d
 export async function checkSheetForToday(sheetLink: string) {
   const sheets = await getAuthSheets();
 
-  // 1. Extract ID from link
   const matches = sheetLink.match(/\/d\/([a-zA-Z0-9-_]+)/);
   if (!matches || !matches[1]) return false;
   const externalSheetId = matches[1];
 
   try {
-      // 2. READ THE ENTIRE SHEET (A to ZZ)
-      // This captures virtually everything in the first tab
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: externalSheetId,
         range: 'A:ZZ', 
       });
 
       const rows = response.data.values || [];
-      
-      // 3. Generate Today's Date Strings (IST)
       const now = new Date();
       const options: any = { timeZone: 'Asia/Kolkata' };
       
@@ -83,36 +77,25 @@ export async function checkSheetForToday(sheetLink: string) {
       const monthNum = now.toLocaleString('en-IN', { month: 'numeric', ...options });
       const year = now.toLocaleString('en-IN', { year: 'numeric', ...options });
       const yearShort = year.slice(-2);
-      const monthShort = now.toLocaleString('en-IN', { month: 'short', ...options }); // "Dec"
+      const monthShort = now.toLocaleString('en-IN', { month: 'short', ...options });
       
       const searchTerms = [
-          `${day}/${monthNum}/${year}`,       // 12/12/2025
-          `${day}-${monthNum}-${year}`,       // 12-12-2025
-          `${day}/${monthNum}/${yearShort}`,  // 12/12/25
-          `${day}-${monthNum}-${yearShort}`,  // 12-12-25
-          `${year}-${monthNum}-${day}`,       // 2025-12-12
-          `${day} ${monthShort}`,             // 12 Dec
-          `${day}-${monthShort}`,             // 12-Dec
-          `${Number(day)} ${monthShort}`,     // 5 Dec
-          `${Number(day)}-${monthShort}`      // 5-Dec
+          `${day}/${monthNum}/${year}`,
+          `${day}-${monthNum}-${year}`,
+          `${day}/${monthNum}/${yearShort}`,
+          `${day}-${monthNum}-${yearShort}`,
+          `${year}-${monthNum}-${day}`,
+          `${day} ${monthShort}`,
+          `${day}-${monthShort}`,
+          `${Number(day)} ${monthShort}`,
+          `${Number(day)}-${monthShort}`
       ];
 
-      // 4. FLATTEN & SEARCH
-      // Combine all cell data into one giant string to find the date anywhere
       const allText = rows.flat().join(" ").toLowerCase(); 
-
-      const found = searchTerms.some(term => allText.includes(term.toLowerCase()));
-
-      if (found) {
-          console.log(`✅ Date found in sheet: ${externalSheetId}`);
-      } else {
-          console.log(`❌ Date NOT found. Searched for: ${searchTerms.join(", ")}`);
-      }
-
-      return found;
+      return searchTerms.some(term => allText.includes(term.toLowerCase()));
 
   } catch (error) {
-      console.error("Validation Error (Access Denied?):", error);
+      console.error("Validation Error:", error);
       return false; 
   }
 }

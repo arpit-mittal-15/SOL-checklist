@@ -4,13 +4,12 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { 
   Loader2, CheckCircle2, Lock, ArrowRight, Activity, ShieldCheck, 
-  ExternalLink, ServerCog, KeyRound, X, LayoutGrid 
+  ExternalLink, ServerCog, KeyRound, X, LayoutGrid, AlertTriangle 
 } from 'lucide-react';
 
 // --- ⚙️ CONFIGURATION ---
 const OWNER_PHONE = "919876543210"; 
 
-// 🔐 PINS
 const DEPARTMENT_PINS: Record<string, string> = {
   'floor': '1001',
   'basement': '2002',
@@ -20,7 +19,6 @@ const DEPARTMENT_PINS: Record<string, string> = {
   'it_check': '6006'
 };
 
-// 🔗 LINKS (PASTE YOUR GOOGLE SHEET LINKS HERE)
 const DEPARTMENT_SHEETS: Record<string, string> = {
   'floor': 'https://docs.google.com/spreadsheets/d/YOUR_FLOOR_SHEET_ID/edit',
   'basement': 'https://docs.google.com/spreadsheets/d/YOUR_BASEMENT_SHEET_ID/edit',
@@ -53,19 +51,11 @@ export default function Home() {
 
   const handleSubmit = async (deptId: string, name: string, comment: string) => {
     setSubmitting(deptId);
-    
-    // Send the link to the backend for verification
     const currentLink = deptId === 'it_check' ? '' : DEPARTMENT_SHEETS[deptId];
 
     const res = await fetch('/api/checklist', {
       method: 'POST',
-      body: JSON.stringify({ 
-          rowIndex: 0, 
-          deptId, 
-          supervisor: name, 
-          comment,
-          sheetLink: currentLink 
-      }),
+      body: JSON.stringify({ rowIndex: 0, deptId, supervisor: name, comment, sheetLink: currentLink }),
     });
 
     const json = await res.json();
@@ -73,23 +63,59 @@ export default function Home() {
     if (!res.ok) {
         alert(json.error || "Failed to submit.");
     } else {
-        await fetchData();
+        await fetchData(); // Refresh data to get new timestamps
         setActiveDeptId(null); 
 
-        // IT Automation
+        // --- IT AUTOMATION WITH LATE CHECK ---
         if (deptId === 'it_check') {
-            const text = `✅ *Daily Protocol Completed (IST)*\n\nDate: ${new Date().toLocaleDateString('en-IN')}\n\nAll Departments have updated their sheets.\nIT Verification Complete.\n\n- Sent via SOL App`;
-            window.location.href = `https://wa.me/${OWNER_PHONE}?text=${encodeURIComponent(text)}`;
+            generateWhatsAppReport(name);
         }
     }
     setSubmitting(null);
+  };
+
+  // --- 📝 WHATSAPP REPORT GENERATOR (7:30 PM LOGIC) ---
+  const generateWhatsAppReport = (itName: string) => {
+      // 1. Identify Late Submitters
+      const lateList = data
+        .filter(d => d.id !== 'it_check' && d.completed)
+        .filter(d => {
+            // Parse time string "7:45 PM" or "7:45 PM 🔴 LATE"
+            const timeStr = d.timestamp.replace('🔴 LATE', '').trim();
+            const [time, modifier] = timeStr.split(' ');
+            let [hours, minutes] = time.split(':').map(Number);
+            
+            // Convert to 24h for comparison
+            if (modifier === 'PM' && hours !== 12) hours += 12;
+            if (modifier === 'AM' && hours === 12) hours = 0;
+
+            // Check if after 19:30 (7:30 PM)
+            if (hours > 19 || (hours === 19 && minutes > 30)) {
+                return true;
+            }
+            return false;
+        })
+        .map(d => `${d.name} (${d.supervisor})`);
+
+      // 2. Construct Message
+      let text = `✅ *Daily Protocol Completed*\n\nDate: ${new Date().toLocaleDateString('en-IN')}\nIT Verified by: ${itName}\n\n`;
+      
+      if (lateList.length > 0) {
+          text += `⚠️ *LATE SUBMISSIONS (>7:30 PM):*\n`;
+          lateList.forEach(item => text += `- ${item}\n`);
+      } else {
+          text += `🌟 All departments submitted on time.\n`;
+      }
+
+      text += `\n- Sent via SOL App`;
+      
+      window.location.href = `https://wa.me/${OWNER_PHONE}?text=${encodeURIComponent(text)}`;
   };
 
   const completedCount = data.filter(d => d.completed).length;
   const tasksCompleted = data.filter(d => d.id !== 'it_check' && d.completed).length;
   const progress = (completedCount / 6) * 100;
   const dateStr = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' });
-
   const activeDept = data.find(d => d.id === activeDeptId);
 
   if (loading) return (
@@ -103,8 +129,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-100 font-sans overflow-hidden relative selection:bg-blue-500 selection:text-white">
-      
-      {/* Background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute inset-0 bg-[#0f172a]" />
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/20 rounded-full blur-[120px] animate-[pulse_10s_infinite]" />
@@ -112,7 +136,6 @@ export default function Home() {
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
       </div>
 
-      {/* Header */}
       <header className="relative z-10 w-full px-8 py-6 flex items-center justify-between border-b border-white/5 bg-white/5 backdrop-blur-md">
         <div className="flex items-center gap-6">
            <div className="relative h-12 w-40 hover:brightness-125 transition-all">
@@ -140,13 +163,22 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Main Grid */}
-      <main className="relative z-10 container mx-auto px-6 py-10 h-[calc(100vh-100px)] flex flex-col justify-center">
+      <main className="relative z-10 container mx-auto px-6 py-6 h-[calc(100vh-100px)] flex flex-col">
+        
+        {/* --- ⚠️ DEADLINE WARNING BANNER --- */}
+        <div className="mb-6 bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex items-center justify-center gap-3 text-amber-200">
+            <AlertTriangle size={18} className="animate-pulse" />
+            <span className="text-sm font-bold tracking-wide">
+                DEADLINE NOTICE: Reports submitted after <span className="text-white bg-amber-600/40 px-2 py-0.5 rounded">7:30 PM</span> will be flagged to Management.
+            </span>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 h-full max-h-[600px]">
           {data.map((dept) => {
             const isIT = dept.id === 'it_check';
             const isLocked = isIT ? tasksCompleted < 5 : false;
             const isCompleted = dept.completed;
+            const isLate = dept.timestamp.includes('LATE');
             
             return (
               <button
@@ -156,7 +188,7 @@ export default function Home() {
                 className={`
                   group relative w-full h-full min-h-[160px] rounded-2xl p-6 text-left transition-all duration-500 border backdrop-blur-md flex flex-col justify-between overflow-hidden
                   ${isCompleted 
-                    ? 'bg-blue-900/20 border-blue-500/30 hover:bg-blue-900/40 hover:border-blue-400/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.2)]' 
+                    ? isLate ? 'bg-red-900/10 border-red-500/30' : 'bg-blue-900/20 border-blue-500/30'
                     : isLocked 
                       ? 'bg-slate-900/40 border-slate-800 cursor-not-allowed opacity-60 grayscale' 
                       : 'bg-slate-800/40 border-slate-700 hover:bg-slate-700/50 hover:border-slate-500 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(255,255,255,0.1)]'
@@ -176,9 +208,12 @@ export default function Home() {
                   </div>
                   
                   <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border
-                    ${isCompleted ? 'bg-blue-900/40 border-blue-500/30 text-blue-300' : isLocked ? 'bg-slate-900 border-slate-700 text-slate-500' : 'bg-red-500/20 border-red-500/30 text-red-300 animate-pulse'}
+                    ${isCompleted 
+                        ? isLate ? 'bg-red-900/40 border-red-500 text-red-200' : 'bg-blue-900/40 border-blue-500/30 text-blue-300' 
+                        : isLocked ? 'bg-slate-900 border-slate-700 text-slate-500' 
+                        : 'bg-red-500/20 border-red-500/30 text-red-300 animate-pulse'}
                   `}>
-                    {isCompleted ? 'Completed' : isLocked ? 'Locked' : 'Action Req.'}
+                    {isCompleted ? (isLate ? 'LATE SUBMISSION' : 'COMPLETED') : isLocked ? 'LOCKED' : 'ACTION REQ.'}
                   </div>
                 </div>
 
@@ -187,8 +222,8 @@ export default function Home() {
                     {dept.name}
                   </h3>
                   {isCompleted ? (
-                    <div className="text-xs text-blue-300/80 font-mono">
-                      Supervisor: {dept.supervisor}
+                    <div className="text-xs text-slate-400 font-mono">
+                      By: <span className="text-white">{dept.supervisor}</span> at {dept.timestamp.replace('🔴 LATE', '')}
                     </div>
                   ) : (
                     <div className="text-xs text-slate-400 group-hover:text-slate-300 flex items-center gap-2">
@@ -252,7 +287,6 @@ export default function Home() {
   );
 }
 
-// Form Component
 function ActiveForm({ dept, requiredPin, sheetLink, onSubmit, isSubmitting }: any) {
   const [name, setName] = useState('');
   const [comment, setComment] = useState('');
