@@ -5,10 +5,10 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "SOL France Checklist Data", // <--- This changes the Tab Name
+  title: "SOL France Checklist Data",
   description: "Daily Production Protocol",
   icons: {
-    icon: "/logo.webp", // <--- This puts your SOL Logo on the tab
+    icon: "/logo.webp",
   },
 };
 

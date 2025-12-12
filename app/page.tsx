@@ -5,12 +5,13 @@ import Image from 'next/image';
 import { Loader2, CheckCircle2, Lock, ArrowRight, Activity, ShieldCheck, Link as LinkIcon } from 'lucide-react';
 
 // --- 🔐 SECURITY SETTINGS ---
+// Change these codes to whatever you want!
 const DEPARTMENT_PINS: Record<string, string> = {
-  'floor': '1001',
-  'basement': '2002',
-  'quality': '3003',
-  'stock': '4004',
-  'attendance': '5005'
+  'floor': '1001',      // Pin for Production Floor
+  'basement': '2002',   // Pin for Basement
+  'quality': '3003',    // Pin for Quality
+  'stock': '4004',      // Pin for Stock
+  'attendance': '5005'  // Pin for Attendance
 };
 
 export default function Home() {
@@ -46,7 +47,6 @@ export default function Home() {
     const json = await res.json();
     
     if (!res.ok) {
-        // If error (like bad link), show alert
         alert(json.error || "Failed to submit. Check your link permissions.");
     } else {
         await fetchData();
@@ -74,10 +74,12 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#f1f5f9] text-slate-800 font-sans pb-24">
+      {/* Background Gradient */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-[#0f172a] via-[#1e3a8a] to-transparent opacity-100" />
       </div>
 
+      {/* Header */}
       <header className="relative z-10 pt-6 px-6 pb-20">
         <div className="max-w-xl mx-auto flex items-center justify-between">
           <div className="relative h-16 w-40 filter drop-shadow-lg">
@@ -89,6 +91,7 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Progress Dashboard */}
         <div className="max-w-xl mx-auto mt-8">
            <div className="flex justify-between items-end mb-2 text-white">
              <div>
@@ -113,6 +116,7 @@ export default function Home() {
         </div>
       </header>
 
+      {/* Cards List */}
       <main className="relative z-20 px-4 -mt-12 max-w-xl mx-auto space-y-5">
         {data.map((dept, index) => {
           const isLocked = index > 0 && !data[index - 1].completed;
@@ -189,6 +193,7 @@ export default function Home() {
   );
 }
 
+// --- FORM COMPONENT (Fixed Inputs) ---
 function ActiveForm({ dept, requiredPin, onSubmit, isSubmitting }: any) {
   const [name, setName] = useState('');
   const [comment, setComment] = useState('');
@@ -201,7 +206,6 @@ function ActiveForm({ dept, requiredPin, onSubmit, isSubmitting }: any) {
       setError('Incorrect Department PIN');
       return;
     }
-    // Simple URL validation
     if (!link.includes('docs.google.com/spreadsheets')) {
         setError('Link must be a Google Sheet URL');
         return;
@@ -211,65 +215,97 @@ function ActiveForm({ dept, requiredPin, onSubmit, isSubmitting }: any) {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2">
-          <div className="group relative">
+    <div className="space-y-5 pt-2">
+      <div className="grid gap-5 md:grid-cols-2">
+          {/* --- NAME FIELD --- */}
+          <div className="relative">
             <input 
-            className="peer w-full h-11 bg-white border-b-2 border-slate-200 text-sm font-semibold text-slate-900 placeholder-transparent focus:border-red-500 focus:outline-none transition-colors"
-            placeholder="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+              id={`name-${dept.id}`}
+              className="peer w-full h-12 bg-transparent border-b-2 border-slate-300 text-sm font-bold text-slate-900 placeholder-transparent focus:border-red-500 focus:outline-none transition-all pt-4"
+              placeholder="Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
             />
-            <label className="absolute left-0 -top-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-3 peer-focus:-top-2 peer-focus:text-[10px] peer-focus:text-red-500">
-            Supervisor Name
+            <label 
+              htmlFor={`name-${dept.id}`}
+              className="pointer-events-none absolute left-0 -top-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider transition-all 
+              peer-placeholder-shown:text-sm peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-slate-500 
+              peer-focus:-top-1 peer-focus:text-[10px] peer-focus:text-red-500"
+            >
+              Supervisor Name
             </label>
           </div>
           
-          <div className="group relative">
+          {/* --- COMMENT FIELD --- */}
+          <div className="relative">
             <input 
-            className="peer w-full h-11 bg-white border-b-2 border-slate-200 text-sm font-medium text-slate-900 placeholder-transparent focus:border-blue-500 focus:outline-none transition-colors"
-            placeholder="Comments"
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
+              id={`comment-${dept.id}`}
+              className="peer w-full h-12 bg-transparent border-b-2 border-slate-300 text-sm font-medium text-slate-900 placeholder-transparent focus:border-blue-500 focus:outline-none transition-all pt-4"
+              placeholder="Comments"
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
             />
-            <label className="absolute left-0 -top-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-3 peer-focus:-top-2 peer-focus:text-[10px] peer-focus:text-blue-500">
-            Comments (Optional)
+            <label 
+              htmlFor={`comment-${dept.id}`}
+              className="pointer-events-none absolute left-0 -top-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider transition-all 
+              peer-placeholder-shown:text-sm peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-slate-500 
+              peer-focus:-top-1 peer-focus:text-[10px] peer-focus:text-blue-500"
+            >
+              Comments (Optional)
             </label>
           </div>
       </div>
 
-      {/* --- 🔗 MANDATORY SHEET LINK --- */}
-      <div className="group relative">
+      {/* --- SHEET LINK FIELD --- */}
+      <div className="relative mt-2">
         <div className="flex items-center gap-3">
-             <div className="bg-green-50 p-3 rounded-lg text-green-700">
+             <div className="bg-green-50 p-3 rounded-xl text-green-700 shrink-0">
                  <LinkIcon size={20} />
              </div>
-             <input 
-             className="peer w-full h-12 bg-white border border-slate-200 rounded-lg px-3 text-sm text-slate-700 focus:ring-2 focus:ring-green-500 outline-none"
-             placeholder="Paste Google Sheet Link Here..."
-             value={link}
-             onChange={(e) => setLink(e.target.value)}
-             />
+             <div className="relative w-full">
+                <input 
+                  id={`link-${dept.id}`}
+                  className="peer w-full h-12 bg-transparent border-b-2 border-slate-300 text-sm font-medium text-slate-900 placeholder-transparent focus:border-green-500 focus:outline-none transition-all pt-4"
+                  placeholder="Paste Link"
+                  value={link}
+                  onChange={(e) => setLink(e.target.value)}
+                />
+                <label 
+                  htmlFor={`link-${dept.id}`}
+                  className="pointer-events-none absolute left-0 -top-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider transition-all 
+                  peer-placeholder-shown:text-sm peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-slate-500 
+                  peer-focus:-top-1 peer-focus:text-[10px] peer-focus:text-green-600"
+                >
+                  Paste Google Sheet Link
+                </label>
+             </div>
         </div>
-        <p className="text-[10px] text-slate-400 mt-1 pl-12">
-            *Ensure sheet is shared with bot or "Anyone with link".
+        <p className="text-[10px] text-slate-400 mt-2 pl-14 opacity-80">
+            *Ensure sheet is shared with "Anyone with link" or the bot.
         </p>
       </div>
 
-      <div className="flex gap-3">
-        <div className="group relative w-32 shrink-0">
+      {/* --- PIN & SUBMIT --- */}
+      <div className="flex gap-4 pt-2">
+        <div className="relative w-28 shrink-0">
             <input 
-            type="password"
-            maxLength={4}
-            className={`peer w-full h-12 bg-white border-b-2 text-center text-sm font-bold text-slate-900 tracking-widest placeholder-transparent focus:outline-none transition-colors
-                ${error && error.includes('PIN') ? 'border-red-500 text-red-600' : 'border-slate-200 focus:border-red-500'}
-            `}
-            placeholder="PIN"
-            value={pin}
-            onChange={(e) => { setPin(e.target.value); setError(''); }}
+              id={`pin-${dept.id}`}
+              type="password"
+              maxLength={4}
+              className={`peer w-full h-12 bg-transparent border-b-2 text-center text-lg font-bold text-slate-900 tracking-[0.2em] placeholder-transparent focus:outline-none transition-all pt-2
+                  ${error && error.includes('PIN') ? 'border-red-500 text-red-600' : 'border-slate-300 focus:border-red-500'}
+              `}
+              placeholder="PIN"
+              value={pin}
+              onChange={(e) => { setPin(e.target.value); setError(''); }}
             />
-            <label className="absolute left-0 right-0 text-center -top-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider transition-all peer-placeholder-shown:text-sm peer-placeholder-shown:top-3 peer-focus:-top-2 peer-focus:text-[10px] peer-focus:text-red-500">
-            PIN
+            <label 
+              htmlFor={`pin-${dept.id}`}
+              className="pointer-events-none absolute left-0 right-0 text-center -top-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider transition-all 
+              peer-placeholder-shown:text-sm peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-slate-500 
+              peer-focus:-top-1 peer-focus:text-[10px] peer-focus:text-red-500"
+            >
+              PIN
             </label>
         </div>
 
@@ -277,10 +313,10 @@ function ActiveForm({ dept, requiredPin, onSubmit, isSubmitting }: any) {
             disabled={!name.trim() || !pin || !link || isSubmitting}
             onClick={handleVerifyAndSubmit}
             className={`
-            flex-1 h-12 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all transform active:scale-95 shadow-lg
+            flex-1 h-12 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all transform active:scale-[0.98] shadow-lg
             ${!name.trim() || !pin || !link
                 ? 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none' 
-                : 'bg-[#1e3a8a] text-white shadow-blue-900/20 hover:bg-blue-900'
+                : 'bg-[#1e3a8a] text-white shadow-blue-900/20 hover:bg-blue-900 hover:shadow-blue-900/40'
             }
             `}
         >
@@ -293,7 +329,7 @@ function ActiveForm({ dept, requiredPin, onSubmit, isSubmitting }: any) {
         </button>
       </div>
       
-      {error && <div className="text-center text-xs text-red-500 font-bold animate-pulse">{error}</div>}
+      {error && <div className="text-center text-xs text-red-500 font-bold animate-pulse mt-2">{error}</div>}
     </div>
   );
 }

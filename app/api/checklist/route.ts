@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getTodayRow, createTodayRow, updateDepartmentData, processSheetLink, DEPARTMENTS } from '@/lib/sheets';
 import { format } from 'date-fns';
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'; // Prevents caching issues
 
 export async function GET() {
   const today = format(new Date(), 'yyyy-MM-dd');
@@ -43,8 +43,7 @@ export async function POST(req: Request) {
 
     const timestamp = format(new Date(), 'HH:mm:ss');
     
-    // 1. Process the External Link (If provided)
-    // We do this FIRST. If the link is bad (access denied), we fail and don't check off the task.
+    // 1. Process the Google Sheet Link (Extract and Archive Data)
     if (sheetLink) {
         try {
             await processSheetLink(dept.name, supervisor, sheetLink);
@@ -53,11 +52,10 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Link Error: Please ensure "Anyone with link" is viewable or share with bot email.' }, { status: 400 });
         }
     } else {
-        // Enforce Mandatory Link
         return NextResponse.json({ error: 'Google Sheet Link is required' }, { status: 400 });
     }
 
-    // 2. If Link was successful, Mark as Complete
+    // 2. Mark as Complete
     await updateDepartmentData(rowIndex, dept.startCol, ['TRUE', supervisor, timestamp, comment]);
     
     return NextResponse.json({ success: true });

@@ -1,6 +1,5 @@
 import { google } from 'googleapis';
 
-// --- CONFIGURATION ---
 export const DEPARTMENTS = [
   { id: 'floor', name: 'Production (First Floor)', startCol: 1 },
   { id: 'basement', name: 'Production (Basement)', startCol: 5 },
@@ -22,7 +21,6 @@ async function getAuthSheets() {
   return google.sheets({ version: 'v4', auth: await auth.getClient() as any });
 }
 
-// --- STANDARD CHECKLIST FUNCTIONS ---
 export async function getTodayRow(dateStr: string) {
   const sheets = await getAuthSheets();
   const response = await sheets.spreadsheets.values.get({
@@ -57,32 +55,30 @@ export async function updateDepartmentData(rowIndex: number, colIndex: number, d
   });
 }
 
-// --- NEW: LINK IMPORT FUNCTIONS ---
+// --- LINK PROCESSING LOGIC ---
 export async function processSheetLink(deptName: string, supervisor: string, sheetLink: string) {
   const sheets = await getAuthSheets();
   const mainSpreadsheetId = process.env.GOOGLE_SHEET_ID;
 
-  // 1. Extract the ID from the link the user pasted
+  // Extract ID from link
   const matches = sheetLink.match(/\/d\/([a-zA-Z0-9-_]+)/);
   if (!matches || !matches[1]) throw new Error("Invalid Google Sheet Link");
   const externalSheetId = matches[1];
 
-  // 2. Read data from the Supervisor's sheet (Assumes data is in the first tab)
-  // We read range A:Z to capture everything.
+  // Read external sheet
   const externalResponse = await sheets.spreadsheets.values.get({
     spreadsheetId: externalSheetId,
     range: 'A:Z', 
   });
   
   const rawData = externalResponse.data.values;
-  if (!rawData || rawData.length === 0) return; // Nothing to copy
+  if (!rawData || rawData.length === 0) return;
 
-  // 3. Prepare data for Archive (Add Timestamp, Dept, Supervisor to every row)
+  // Add metadata to rows
   const timestamp = new Date().toLocaleString();
-  // We skip the first row if it's a header, or copy all. Let's copy all to be safe.
   const labeledRows = rawData.map(row => [timestamp, deptName, supervisor, ...row]);
 
-  // 4. Check if "Data_Logs" exists in YOUR main sheet
+  // Check if Logs sheet exists
   const meta = await sheets.spreadsheets.get({ spreadsheetId: mainSpreadsheetId });
   const sheetExists = meta.data.sheets?.some(s => s.properties?.title === LOGS_SHEET_TITLE);
 
@@ -96,11 +92,11 @@ export async function processSheetLink(deptName: string, supervisor: string, she
       spreadsheetId: mainSpreadsheetId,
       range: `${LOGS_SHEET_TITLE}!A1`,
       valueInputOption: 'USER_ENTERED',
-      requestBody: { values: [["Archived At", "Department", "Supervisor", "--- COPIED DATA ---"]] }
+      requestBody: { values: [["Archived At", "Department", "Supervisor", "--- DATA START ---"]] }
     });
   }
 
-  // 5. Paste the data into your Archive
+  // Append data
   await sheets.spreadsheets.values.append({
     spreadsheetId: mainSpreadsheetId,
     range: `${LOGS_SHEET_TITLE}!A:A`,
