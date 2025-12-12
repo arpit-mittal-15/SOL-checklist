@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getTodayRow, createTodayRow, updateDepartmentData, checkSheetForToday, DEPARTMENTS } from '@/lib/sheets';
+import { getTodayRow, createTodayRow, updateDepartmentData, checkSheetForToday, getStoredLinks, updateStoredLink, DEPARTMENTS } from '@/lib/sheets';
 import { format } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
@@ -8,14 +8,17 @@ export async function GET() {
   const today = new Date().toLocaleString("en-CA", { timeZone: "Asia/Kolkata" }).split(',')[0]; 
   
   try {
+    // 1. Get Checklist Status
     let row = await getTodayRow(today);
-    
     if (!row) {
       await createTodayRow(today);
       await new Promise(r => setTimeout(r, 1000));
       row = await getTodayRow(today);
     }
     
+    // 2. Get Dynamic Links
+    const savedLinks = await getStoredLinks();
+
     const rowData = row?.data || [];
     const structuredData = DEPARTMENTS.map((dept) => ({
       id: dept.id,
@@ -24,6 +27,8 @@ export async function GET() {
       supervisor: rowData[dept.startCol + 1] || '',
       timestamp: rowData[dept.startCol + 2] || '',
       comment: rowData[dept.startCol + 3] || '',
+      // Attach the saved link to the department object
+      currentLink: savedLinks[dept.id] || '' 
     }));
 
     const isAllDone = structuredData.every(d => d.completed);
@@ -51,22 +56,19 @@ export async function POST(req: Request) {
     if (deptId !== 'it_check') {
         if (!sheetLink) return NextResponse.json({ error: "Link missing" }, { status: 400 });
         const isValid = await checkSheetForToday(sheetLink);
-        if (!isValid) return NextResponse.json({ error: `⚠️ Data Missing! Today's date not found in sheet.` }, { status: 400 });
+        if (!isValid) return NextResponse.json({ error: `⚠️ Data Missing! Today's date not found in the sheet.` }, { status: 400 });
+        
+        // --- 💾 SAVE LINK FOR NEXT TIME ---
+        await updateStoredLink(deptId, sheetLink);
     }
 
-    // --- ⏰ TIME LOGIC (7:30 PM CUTOFF) ---
     const now = new Date();
-    // Get numeric hour/minute in IST
-    const istTimeStr = now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: false }); // "19:35:00"
+    const istTimeStr = now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: false });
     const [hours, minutes] = istTimeStr.split(':').map(Number);
-
-    // Generate Display Timestamp
     let displayTime = now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: true });
 
-    // CHECK FOR LATE SUBMISSION (> 19:30)
-    // Late if Hour > 19 OR (Hour is 19 AND Minute > 30)
     if (hours > 19 || (hours === 19 && minutes > 30)) {
-        displayTime = `${displayTime} 🔴 LATE`; // Mark in sheet
+        displayTime = `${displayTime} 🔴 LATE`;
     }
 
     await updateDepartmentData(rowIndex, dept.startCol, ['TRUE', supervisor, displayTime, comment]);
