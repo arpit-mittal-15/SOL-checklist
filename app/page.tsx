@@ -10,8 +10,8 @@ import {
 } from 'lucide-react';
 
 // --- ⚙️ CONFIGURATION ---
-const OWNER_PHONE = "919876543210"; 
-const MASTER_PIN = "9999"; // <--- PIN TO ACCESS DASHBOARD
+const OWNER_PHONE = "917457001218"; 
+const MASTER_PIN = "9999"; // <--- OWNER PIN
 
 const DEPARTMENT_PINS: Record<string, string> = {
   'floor': '1001',
@@ -45,6 +45,7 @@ export default function Home() {
   // Owner Login State
   const [showOwnerLogin, setShowOwnerLogin] = useState(false);
   const [ownerPin, setOwnerPin] = useState('');
+  const [ownerError, setOwnerError] = useState(''); // <--- NEW ERROR STATE
 
   const fetchData = async () => {
     try {
@@ -76,7 +77,7 @@ export default function Home() {
     } else {
         await fetchData();
         setActiveDeptId(null); 
-        setEmbeddedLink(null); // Close iframe
+        setEmbeddedLink(null); 
 
         if (deptId === 'it_check') {
             generateWhatsAppReport(name);
@@ -87,16 +88,16 @@ export default function Home() {
 
   const handleOwnerLogin = () => {
     if (ownerPin === MASTER_PIN) {
+        setOwnerError(''); // Clear error
         router.push('/dashboard');
     } else {
-        alert("Access Denied: Incorrect PIN");
+        setOwnerError('Incorrect Master PIN'); // Set error message
         setOwnerPin('');
     }
   };
 
   const handleSaveAndClose = () => {
     setIsSyncing(true);
-    // Simulate sync delay
     setTimeout(() => {
         setIsSyncing(false);
         setEmbeddedLink(null);
@@ -156,12 +157,12 @@ export default function Home() {
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
       </div>
 
-      {/* --- 🔐 OWNER LOGIN MODAL --- */}
+      {/* --- 🔐 OWNER LOGIN MODAL (UPDATED) --- */}
       {showOwnerLogin && (
         <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
            <div className="bg-[#1e293b] border border-slate-700 p-8 rounded-2xl w-full max-w-sm text-center relative shadow-2xl">
               <button 
-                onClick={() => setShowOwnerLogin(false)}
+                onClick={() => { setShowOwnerLogin(false); setOwnerError(''); }}
                 className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
               >
                 <X size={20}/>
@@ -176,10 +177,12 @@ export default function Home() {
               
               <input 
                 type="password" 
-                className="w-full bg-slate-900 border border-slate-600 rounded-xl h-12 text-center text-white font-bold tracking-[0.5em] mb-4 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all" 
+                className={`w-full bg-slate-900 border rounded-xl h-12 text-center text-white font-bold tracking-[0.5em] mb-4 focus:outline-none transition-all
+                  ${ownerError ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'}
+                `}
                 maxLength={4} 
                 value={ownerPin} 
-                onChange={e => setOwnerPin(e.target.value)}
+                onChange={e => { setOwnerPin(e.target.value); setOwnerError(''); }}
                 placeholder="••••"
                 onKeyDown={(e) => e.key === 'Enter' && handleOwnerLogin()}
               />
@@ -190,6 +193,13 @@ export default function Home() {
               >
                 ACCESS DASHBOARD
               </button>
+
+              {/* Error Message appears here now */}
+              {ownerError && (
+                <div className="text-red-400 text-xs font-bold mt-4 animate-pulse flex items-center justify-center gap-1">
+                    <AlertTriangle size={12}/> {ownerError}
+                </div>
+              )}
            </div>
         </div>
       )}
@@ -197,7 +207,6 @@ export default function Home() {
       {/* --- 🖥️ EMBEDDED WORKSPACE (IFRAME) --- */}
       {embeddedLink && (
          <div className="fixed inset-0 z-[60] flex flex-col animate-in slide-in-from-bottom-10 duration-500 bg-[#0f172a]">
-            
             {/* Toolbar */}
             <div className="h-16 bg-[#0f172a]/95 backdrop-blur-xl border-b border-white/10 flex items-center justify-between px-6 shadow-2xl z-50">
                 <div className="flex items-center gap-4">
@@ -270,7 +279,7 @@ export default function Home() {
              <Image src="/logo.webp" alt="Logo" fill className="object-contain object-left" priority />
            </div>
            
-           {/* DASHBOARD BUTTON (Triggers Login) */}
+           {/* DASHBOARD BUTTON */}
            <button 
              onClick={() => setShowOwnerLogin(true)}
              className="hidden md:flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg text-xs font-bold border border-white/10 transition-all hover:scale-105"
@@ -421,7 +430,7 @@ export default function Home() {
   );
 }
 
-// --- SUB-COMPONENT: FORM WITH DYNAMIC LINKS ---
+// --- SUB-COMPONENT: FORM ---
 function ActiveForm({ dept, requiredPin, savedLink, onOpenSheet, onSubmit, isSubmitting }: any) {
   const [name, setName] = useState('');
   const [comment, setComment] = useState('');
@@ -478,7 +487,7 @@ function ActiveForm({ dept, requiredPin, savedLink, onOpenSheet, onSubmit, isSub
   return (
     <div className="space-y-5 animate-in slide-in-from-bottom-5 duration-300">
       
-      {/* 1. BUTTON: TRIGGERS EMBEDDED IFRAME (Last Saved Link) */}
+      {/* 1. BUTTON: TRIGGERS EMBEDDED IFRAME */}
       {dept.id !== 'it_check' && (
         <button 
             onClick={() => onOpenSheet(savedLink || '#')}
@@ -497,7 +506,7 @@ function ActiveForm({ dept, requiredPin, savedLink, onOpenSheet, onSubmit, isSub
 
       <div className="h-px bg-slate-800 w-full my-4"></div>
 
-      {/* 2. FORM: USES NEW LINK INPUT */}
+      {/* 2. FORM */}
       <div className="space-y-4">
         <div className="grid gap-5 md:grid-cols-2">
             <div className="relative">
