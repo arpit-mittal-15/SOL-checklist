@@ -4,11 +4,11 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { 
   Loader2, CheckCircle2, Lock, ArrowRight, Activity, ShieldCheck, 
-  ExternalLink, ServerCog, KeyRound, X, LayoutGrid, AlertTriangle, Link as LinkIcon 
+  ExternalLink, ServerCog, KeyRound, X, LayoutGrid, AlertTriangle, Link as LinkIcon, Maximize2, Minimize2 
 } from 'lucide-react';
 
 // --- ⚙️ CONFIGURATION ---
-const OWNER_PHONE = "917457001218"; 
+const OWNER_PHONE = "919876543210"; 
 
 const DEPARTMENT_PINS: Record<string, string> = {
   'floor': '1001',
@@ -19,13 +19,13 @@ const DEPARTMENT_PINS: Record<string, string> = {
   'it_check': '6006'
 };
 
-// INITIAL DEFAULT LINKS (Used only if DB is empty)
+// DEFAULT LINKS (Used if no dynamic link exists)
 const DEFAULT_LINKS: Record<string, string> = {
-  'floor': 'https://docs.google.com/spreadsheets/d/1SHR6Oanaz-h-iYZBRSwlqci4PHuVRxpLG92MEcGSB9E/edit?gid=1312897317#gid=1312897317',
-  'basement': 'https://docs.google.com/spreadsheets/d/1SHR6Oanaz-h-iYZBRSwlqci4PHuVRxpLG92MEcGSB9E/edit?gid=0#gid=0',
-  'quality': 'https://docs.google.com/spreadsheets/d/1Vf86RYqPH82qrEq1z2QPA99AkVIndP8J/edit?gid=2024287451#gid=2024287451',
-  'stock': 'https://docs.google.com/spreadsheets/d/12siBNbDOtmyAqIRH5cgc9APtw3rIEqBeZTzBRgiBrsg/edit?gid=580761467&usp=gmail#gid=580761467',
-  'attendance': 'https://docs.google.com/spreadsheets/d/1SHR6Oanaz-h-iYZBRSwlqci4PHuVRxpLG92MEcGSB9E/edit?gid=1751300469#gid=1751300469',
+  'floor': 'https://docs.google.com/spreadsheets/d/YOUR_FLOOR_SHEET_ID/edit',
+  'basement': 'https://docs.google.com/spreadsheets/d/YOUR_BASEMENT_SHEET_ID/edit',
+  'quality': 'https://docs.google.com/spreadsheets/d/YOUR_QUALITY_SHEET_ID/edit',
+  'stock': 'https://docs.google.com/spreadsheets/d/YOUR_STOCK_SHEET_ID/edit',
+  'attendance': 'https://docs.google.com/spreadsheets/d/YOUR_ATTENDANCE_SHEET_ID/edit',
   'it_check': '#' 
 };
 
@@ -34,6 +34,7 @@ export default function Home() {
   const [data, setData] = useState<any[]>([]);
   const [activeDeptId, setActiveDeptId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<string | null>(null);
+  const [embeddedLink, setEmbeddedLink] = useState<string | null>(null); // Controls the Iframe
 
   const fetchData = async () => {
     try {
@@ -65,6 +66,7 @@ export default function Home() {
     } else {
         await fetchData();
         setActiveDeptId(null); 
+        setEmbeddedLink(null); // Close iframe if open
 
         if (deptId === 'it_check') {
             generateWhatsAppReport(name);
@@ -104,7 +106,7 @@ export default function Home() {
   const dateStr = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' });
   const activeDept = data.find(d => d.id === activeDeptId);
 
-  // Logic: Use Saved Link from API, or Fallback to Default
+  // Determine current link (API or Default)
   const currentLink = activeDept?.savedLink || DEFAULT_LINKS[activeDept?.id || ''] || '';
 
   if (loading) return (
@@ -118,12 +120,53 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-100 font-sans overflow-hidden relative selection:bg-blue-500 selection:text-white">
+      
+      {/* Background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute inset-0 bg-[#0f172a]" />
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/20 rounded-full blur-[120px] animate-[pulse_10s_infinite]" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-indigo-600/20 rounded-full blur-[120px] animate-[pulse_15s_infinite_reverse]" />
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
       </div>
+
+      {/* --- 🖥️ EMBEDDED WORKSPACE (THE IFRAME MODAL) --- */}
+      {embeddedLink && (
+         <div className="fixed inset-0 z-[60] bg-[#0f172a] flex flex-col animate-in slide-in-from-bottom-10 duration-500">
+            {/* Toolbar */}
+            <div className="h-14 bg-slate-900 border-b border-slate-700 flex items-center justify-between px-4">
+                <div className="flex items-center gap-3">
+                    <div className="bg-green-600 text-white p-1.5 rounded-lg"><LayoutGrid size={18}/></div>
+                    <div>
+                        <h3 className="text-sm font-bold text-white leading-none">{activeDept?.name}</h3>
+                        <p className="text-[10px] text-slate-400">Live Workspace Mode</p>
+                    </div>
+                </div>
+                <button 
+                    onClick={() => setEmbeddedLink(null)}
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all"
+                >
+                    <Minimize2 size={14} />
+                    <span>DONE & CLOSE</span>
+                </button>
+            </div>
+            
+            {/* The Google Sheet Iframe */}
+            <div className="flex-1 relative bg-white">
+                <iframe 
+                    src={embeddedLink} 
+                    className="absolute inset-0 w-full h-full border-0"
+                    allow="clipboard-write"
+                />
+            </div>
+            {/* Fallback Link */}
+            <div className="h-8 bg-slate-900 flex items-center justify-center border-t border-slate-700">
+                <p className="text-[10px] text-slate-500 flex items-center gap-2">
+                    <AlertTriangle size={10} />
+                    Not loading? <a href={embeddedLink} target="_blank" className="underline text-blue-400 hover:text-blue-300">Click to open in new tab</a>
+                </p>
+            </div>
+         </div>
+      )}
 
       <header className="relative z-10 w-full px-8 py-6 flex items-center justify-between border-b border-white/5 bg-white/5 backdrop-blur-md">
         <div className="flex items-center gap-6">
@@ -210,7 +253,8 @@ export default function Home() {
         </div>
       </main>
 
-      {activeDept && (
+      {/* VERIFICATION MODAL */}
+      {activeDept && !embeddedLink && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setActiveDeptId(null)}/>
           <div className="relative w-full max-w-lg bg-[#0f172a] border border-slate-700 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in zoom-in-95 duration-300">
@@ -226,7 +270,14 @@ export default function Home() {
                   <p className="text-slate-400 text-sm mt-2">By: {activeDept.supervisor}<br/>Time: {activeDept.timestamp}</p>
                 </div>
               ) : (
-                <ActiveForm dept={activeDept} requiredPin={DEPARTMENT_PINS[activeDept.id]} savedLink={currentLink} onSubmit={handleSubmit} isSubmitting={submitting === activeDept.id}/>
+                <ActiveForm 
+                    dept={activeDept} 
+                    requiredPin={DEPARTMENT_PINS[activeDept.id]} 
+                    savedLink={currentLink} 
+                    onOpenSheet={(link: string) => setEmbeddedLink(link)} // Triggers Iframe
+                    onSubmit={handleSubmit} 
+                    isSubmitting={submitting === activeDept.id}
+                />
               )}
             </div>
           </div>
@@ -236,11 +287,10 @@ export default function Home() {
   );
 }
 
-// --- FORM COMPONENT ---
-function ActiveForm({ dept, requiredPin, savedLink, onSubmit, isSubmitting }: any) {
+function ActiveForm({ dept, requiredPin, savedLink, onOpenSheet, onSubmit, isSubmitting }: any) {
   const [name, setName] = useState('');
   const [comment, setComment] = useState('');
-  const [link, setLink] = useState(''); // New Link
+  const [link, setLink] = useState('');
   const [pin, setPin] = useState('');
   const [isVerified, setIsVerified] = useState(false);
   const [error, setError] = useState('');
@@ -273,20 +323,22 @@ function ActiveForm({ dept, requiredPin, savedLink, onSubmit, isSubmitting }: an
   return (
     <div className="space-y-5 animate-in slide-in-from-bottom-5 duration-300">
       
-      {/* 1. BUTTON: USES SAVED LINK */}
+      {/* 1. BUTTON: TRIGGERS EMBEDDED IFRAME */}
       {dept.id !== 'it_check' && (
-        <a href={savedLink || '#'} target="_blank" rel="noopener noreferrer" className="group flex items-center justify-between w-full bg-[#1e293b] border border-slate-700 hover:border-blue-500/50 p-4 rounded-xl transition-all hover:shadow-[0_0_20px_rgba(59,130,246,0.15)]">
+        <button 
+            onClick={() => onOpenSheet(savedLink || '#')}
+            className="group flex items-center justify-between w-full bg-[#1e293b] border border-slate-700 hover:border-blue-500/50 p-4 rounded-xl transition-all hover:shadow-[0_0_20px_rgba(59,130,246,0.15)]"
+        >
           <div className="flex items-center gap-3">
-             <div className="p-2 bg-green-500/20 text-green-400 rounded-lg group-hover:scale-110 transition-transform"><LayoutGrid size={20}/></div>
-             <div className="text-left"><div className="text-sm font-bold text-white group-hover:text-blue-300 transition-colors">Open Last Work Sheet</div><div className="text-[10px] text-slate-400">Click to view previous work</div></div>
+             <div className="p-2 bg-green-500/20 text-green-400 rounded-lg group-hover:scale-110 transition-transform"><Maximize2 size={20}/></div>
+             <div className="text-left"><div className="text-sm font-bold text-white group-hover:text-blue-300 transition-colors">Launch Work Sheet</div><div className="text-[10px] text-slate-400">Opens inside App</div></div>
           </div>
           <ExternalLink size={16} className="text-slate-500 group-hover:text-white transition-colors"/>
-        </a>
+        </button>
       )}
 
       <div className="h-px bg-slate-800 w-full my-4"></div>
 
-      {/* 2. FORM: USES NEW LINK INPUT */}
       <div className="space-y-4">
         <div className="grid gap-5 md:grid-cols-2">
             <div className="relative"><input className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none peer placeholder-transparent" id="n" placeholder="N" value={name} onChange={e => setName(e.target.value)}/><label htmlFor="n" className="absolute left-4 top-[-10px] bg-[#0f172a] px-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider transition-all peer-placeholder-shown:top-3.5 peer-focus:top-[-10px] peer-focus:text-blue-500 pointer-events-none">Supervisor Name</label></div>
@@ -299,7 +351,7 @@ function ActiveForm({ dept, requiredPin, savedLink, onSubmit, isSubmitting }: an
                     <div className="p-3 bg-green-500/10 rounded-xl text-green-400 shrink-0"><LinkIcon size={20} /></div>
                     <div className="relative w-full">
                         <input className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:border-green-500 focus:outline-none peer placeholder-transparent" id="l" placeholder="L" value={link} onChange={e => setLink(e.target.value)}/>
-                        <label htmlFor="l" className="absolute left-4 top-[-10px] bg-[#0f172a] px-1 text-[10px] font-bold text-green-500 uppercase tracking-wider transition-all peer-placeholder-shown:top-3.5 peer-focus:top-[-10px] pointer-events-none">Paste New Daily Sheet Link</label>
+                        <label htmlFor="l" className="absolute left-4 top-[-10px] bg-[#0f172a] px-1 text-[10px] font-bold text-green-500 uppercase tracking-wider transition-all peer-placeholder-shown:top-3.5 peer-focus:top-[-10px] pointer-events-none">Paste New Link (After Editing)</label>
                     </div>
                 </div>
             </div>
