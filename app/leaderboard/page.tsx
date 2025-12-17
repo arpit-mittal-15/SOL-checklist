@@ -18,7 +18,7 @@ export default function Leaderboard() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-white font-sans p-6 overflow-hidden relative">
+    <div className="min-h-screen bg-[#0f172a] text-white font-sans p-6 overflow-hidden relative flex flex-col">
       {/* Confetti Background Effect */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
          <div className="absolute top-0 left-1/4 w-2 h-2 bg-yellow-500 rounded-full animate-[fall_3s_infinite]" />
@@ -26,7 +26,7 @@ export default function Leaderboard() {
          <div className="absolute top-0 left-1/2 w-2 h-2 bg-red-500 rounded-full animate-[fall_2.5s_infinite_0.5s]" />
       </div>
 
-      <div className="max-w-4xl mx-auto relative z-10">
+      <div className="max-w-4xl mx-auto relative z-10 w-full flex-1">
         
         {/* --- HEADER (Updated to match Dashboard) --- */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
@@ -100,6 +100,11 @@ export default function Leaderboard() {
             </div>
         )}
       </div>
+      
+      {/* --- FOOTER --- */}
+      <footer className="relative z-10 py-6 text-center text-[10px] text-slate-600 font-medium uppercase tracking-widest mt-auto">
+         © 2025 Sol France. All rights reserved.
+      </footer>
       
       {/* Animations */}
       <style jsx global>{`

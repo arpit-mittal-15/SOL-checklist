@@ -3,16 +3,16 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link'; // Added Link for navigation
+import Link from 'next/link';
 import { 
   Loader2, CheckCircle2, Lock, ArrowRight, Activity, ShieldCheck, 
   ExternalLink, ServerCog, KeyRound, X, LayoutGrid, AlertTriangle, 
   Link as LinkIcon, Maximize2, Save, Cloud, BarChart3,
-  Factory, Warehouse, ClipboardCheck, Package, Users, Wifi, Trophy // Added Trophy Icon
+  Factory, Warehouse, ClipboardCheck, Package, Users, Wifi, Trophy
 } from 'lucide-react';
 
 // --- ⚙️ CONFIGURATION ---
-const OWNER_PHONE = "919876543210"; 
+const OWNER_PHONE = "917457001218"; 
 const MASTER_PIN = "9999"; 
 
 const DEPARTMENT_PINS: Record<string, string> = {
@@ -25,11 +25,11 @@ const DEPARTMENT_PINS: Record<string, string> = {
 };
 
 const DEFAULT_LINKS: Record<string, string> = {
-  'floor': 'https://docs.google.com/spreadsheets/d/YOUR_FLOOR_SHEET_ID/edit',
-  'basement': 'https://docs.google.com/spreadsheets/d/YOUR_BASEMENT_SHEET_ID/edit',
-  'quality': 'https://docs.google.com/spreadsheets/d/YOUR_QUALITY_SHEET_ID/edit',
-  'stock': 'https://docs.google.com/spreadsheets/d/YOUR_STOCK_SHEET_ID/edit',
-  'attendance': 'https://docs.google.com/spreadsheets/d/YOUR_ATTENDANCE_SHEET_ID/edit',
+  'floor': 'https://docs.google.com/spreadsheets/d/1SHR6Oanaz-h-iYZBRSwlqci4PHuVRxpLG92MEcGSB9E/edit?gid=787103720#gid=787103720',
+  'basement': 'https://docs.google.com/spreadsheets/d/1SHR6Oanaz-h-iYZBRSwlqci4PHuVRxpLG92MEcGSB9E/edit?gid=1251109391#gid=1251109391',
+  'quality': 'https://docs.google.com/spreadsheets/d/1Vf86RYqPH82qrEq1z2QPA99AkVIndP8J/edit?gid=2024287451#gid=2024287451',
+  'stock': 'https://docs.google.com/spreadsheets/d/12siBNbDOtmyAqIRH5cgc9APtw3rIEqBeZTzBRgiBrsg/edit?gid=580761467#gid=580761467',
+  'attendance': 'https://docs.google.com/spreadsheets/d/1SHR6Oanaz-h-iYZBRSwlqci4PHuVRxpLG92MEcGSB9E/edit?gid=1751300469#gid=1751300469',
   'it_check': '#' 
 };
 
@@ -149,7 +149,7 @@ export default function Home() {
   if (loading) return (<div className="flex h-screen w-full items-center justify-center bg-[#000510] text-white"><Loader2 className="animate-spin text-blue-500" size={48}/></div>);
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-slate-100 font-sans overflow-hidden relative selection:bg-blue-500 selection:text-white">
+    <div className="min-h-screen bg-[#0f172a] text-slate-100 font-sans overflow-hidden relative selection:bg-blue-500 selection:text-white flex flex-col">
       
       {/* Dynamic Background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
@@ -211,7 +211,7 @@ export default function Home() {
            
            <div className="hidden lg:block h-8 w-px bg-white/10"></div>
            
-           {/* LEADERBOARD BUTTON (NEW) */}
+           {/* LEADERBOARD BUTTON */}
            <Link href="/leaderboard" className="hidden lg:flex items-center gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 px-4 py-2 rounded-lg text-xs font-bold border border-yellow-500/20 transition-all hover:scale-105">
              <Trophy size={14} /> TOP PERFORMERS
            </Link>
@@ -237,7 +237,7 @@ export default function Home() {
       </header>
 
       {/* --- MAIN GRID --- */}
-      <main className="relative z-10 container mx-auto px-6 py-6 h-[calc(100vh-100px)] flex flex-col justify-center">
+      <main className="relative z-10 container mx-auto px-6 py-6 flex-1 flex flex-col justify-center">
         
         {/* Warning Banner */}
         <div className="mb-8 bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 flex items-center justify-center gap-3 text-amber-200 backdrop-blur-sm max-w-4xl mx-auto w-full">
@@ -326,6 +326,11 @@ export default function Home() {
           })}
         </div>
       </main>
+
+      {/* --- FOOTER --- */}
+      <footer className="relative z-10 py-6 text-center text-[10px] text-slate-600 font-medium uppercase tracking-widest">
+         © 2025 Sol France. All rights reserved.
+      </footer>
 
       {/* --- TASK MODAL --- */}
       {activeDept && !embeddedLink && (
