@@ -6,12 +6,13 @@ import { useRouter } from 'next/navigation';
 import { 
   Loader2, CheckCircle2, Lock, ArrowRight, Activity, ShieldCheck, 
   ExternalLink, ServerCog, KeyRound, X, LayoutGrid, AlertTriangle, 
-  Link as LinkIcon, Maximize2, Save, Cloud, BarChart3 
+  Link as LinkIcon, Maximize2, Save, Cloud, BarChart3,
+  Factory, Warehouse, ClipboardCheck, Package, Users, Wifi
 } from 'lucide-react';
 
 // --- ⚙️ CONFIGURATION ---
-const OWNER_PHONE = "917457001218"; 
-const MASTER_PIN = "9999"; // <--- OWNER PIN
+const OWNER_PHONE = "919876543210"; 
+const MASTER_PIN = "9999"; 
 
 const DEPARTMENT_PINS: Record<string, string> = {
   'floor': '1001',
@@ -23,12 +24,65 @@ const DEPARTMENT_PINS: Record<string, string> = {
 };
 
 const DEFAULT_LINKS: Record<string, string> = {
-  'floor': 'https://docs.google.com/spreadsheets/d/1SHR6Oanaz-h-iYZBRSwlqci4PHuVRxpLG92MEcGSB9E/edit?gid=787103720#gid=787103720',
-  'basement': 'https://docs.google.com/spreadsheets/d/1SHR6Oanaz-h-iYZBRSwlqci4PHuVRxpLG92MEcGSB9E/edit?gid=1251109391#gid=1251109391',
-  'quality': 'https://docs.google.com/spreadsheets/d/1Vf86RYqPH82qrEq1z2QPA99AkVIndP8J/edit?gid=2024287451#gid=2024287451',
-  'stock': 'https://docs.google.com/spreadsheets/d/12siBNbDOtmyAqIRH5cgc9APtw3rIEqBeZTzBRgiBrsg/edit?gid=580761467#gid=580761467',
-  'attendance': 'https://docs.google.com/spreadsheets/d/1SHR6Oanaz-h-iYZBRSwlqci4PHuVRxpLG92MEcGSB9E/edit?gid=1751300469#gid=1751300469',
+  'floor': 'https://docs.google.com/spreadsheets/d/YOUR_FLOOR_SHEET_ID/edit',
+  'basement': 'https://docs.google.com/spreadsheets/d/YOUR_BASEMENT_SHEET_ID/edit',
+  'quality': 'https://docs.google.com/spreadsheets/d/YOUR_QUALITY_SHEET_ID/edit',
+  'stock': 'https://docs.google.com/spreadsheets/d/YOUR_STOCK_SHEET_ID/edit',
+  'attendance': 'https://docs.google.com/spreadsheets/d/YOUR_ATTENDANCE_SHEET_ID/edit',
   'it_check': '#' 
+};
+
+// --- 🎨 THEME CONFIGURATION ---
+// This ensures every card looks unique
+const DEPT_THEME: Record<string, any> = {
+  'floor': { 
+      icon: Factory, 
+      color: 'text-amber-400', 
+      bg: 'bg-amber-500/10', 
+      border: 'hover:border-amber-500/50',
+      glow: 'hover:shadow-[0_0_30px_rgba(245,158,11,0.2)]',
+      gradient: 'from-amber-500/20 to-transparent'
+  },
+  'basement': { 
+      icon: Warehouse, 
+      color: 'text-indigo-400', 
+      bg: 'bg-indigo-500/10', 
+      border: 'hover:border-indigo-500/50',
+      glow: 'hover:shadow-[0_0_30px_rgba(99,102,241,0.2)]',
+      gradient: 'from-indigo-500/20 to-transparent'
+  },
+  'quality': { 
+      icon: ClipboardCheck, 
+      color: 'text-emerald-400', 
+      bg: 'bg-emerald-500/10', 
+      border: 'hover:border-emerald-500/50',
+      glow: 'hover:shadow-[0_0_30px_rgba(16,185,129,0.2)]',
+      gradient: 'from-emerald-500/20 to-transparent'
+  },
+  'stock': { 
+      icon: Package, 
+      color: 'text-cyan-400', 
+      bg: 'bg-cyan-500/10', 
+      border: 'hover:border-cyan-500/50',
+      glow: 'hover:shadow-[0_0_30px_rgba(6,182,212,0.2)]',
+      gradient: 'from-cyan-500/20 to-transparent'
+  },
+  'attendance': { 
+      icon: Users, 
+      color: 'text-rose-400', 
+      bg: 'bg-rose-500/10', 
+      border: 'hover:border-rose-500/50',
+      glow: 'hover:shadow-[0_0_30px_rgba(244,63,94,0.2)]',
+      gradient: 'from-rose-500/20 to-transparent'
+  },
+  'it_check': { 
+      icon: Wifi, 
+      color: 'text-blue-400', 
+      bg: 'bg-blue-500/10', 
+      border: 'hover:border-blue-500/50',
+      glow: 'hover:shadow-[0_0_30px_rgba(59,130,246,0.2)]',
+      gradient: 'from-blue-500/20 to-transparent'
+  },
 };
 
 export default function Home() {
@@ -37,15 +91,11 @@ export default function Home() {
   const [data, setData] = useState<any[]>([]);
   const [activeDeptId, setActiveDeptId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<string | null>(null);
-  
-  // Embedded Sheet State
   const [embeddedLink, setEmbeddedLink] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
-
-  // Owner Login State
   const [showOwnerLogin, setShowOwnerLogin] = useState(false);
   const [ownerPin, setOwnerPin] = useState('');
-  const [ownerError, setOwnerError] = useState(''); // <--- NEW ERROR STATE
+  const [ownerError, setOwnerError] = useState('');
 
   const fetchData = async () => {
     try {
@@ -64,69 +114,28 @@ export default function Home() {
 
   const handleSubmit = async (deptId: string, name: string, comment: string, sheetLink: string) => {
     setSubmitting(deptId);
-    
     const res = await fetch('/api/checklist', {
       method: 'POST',
       body: JSON.stringify({ rowIndex: 0, deptId, supervisor: name, comment, sheetLink }),
     });
-
     const json = await res.json();
-
-    if (!res.ok) {
-        alert(json.error || "Failed to submit.");
-    } else {
-        await fetchData();
-        setActiveDeptId(null); 
-        setEmbeddedLink(null); 
-
-        if (deptId === 'it_check') {
-            generateWhatsAppReport(name);
-        }
-    }
+    if (!res.ok) { alert(json.error || "Failed."); } 
+    else { await fetchData(); setActiveDeptId(null); setEmbeddedLink(null); if (deptId === 'it_check') generateWhatsAppReport(name); }
     setSubmitting(null);
   };
 
   const handleOwnerLogin = () => {
-    if (ownerPin === MASTER_PIN) {
-        setOwnerError(''); // Clear error
-        router.push('/dashboard');
-    } else {
-        setOwnerError('Incorrect Master PIN'); // Set error message
-        setOwnerPin('');
-    }
+    if (ownerPin === MASTER_PIN) { setOwnerError(''); router.push('/dashboard'); } 
+    else { setOwnerError('Incorrect PIN'); setOwnerPin(''); }
   };
 
   const handleSaveAndClose = () => {
     setIsSyncing(true);
-    setTimeout(() => {
-        setIsSyncing(false);
-        setEmbeddedLink(null);
-    }, 1500);
+    setTimeout(() => { setIsSyncing(false); setEmbeddedLink(null); }, 1500);
   };
 
   const generateWhatsAppReport = (itName: string) => {
-      const lateList = data
-        .filter(d => d.id !== 'it_check' && d.completed)
-        .filter(d => {
-            const timeStr = d.timestamp.replace('🔴 LATE', '').trim();
-            const [time, modifier] = timeStr.split(' ');
-            let [hours, minutes] = time.split(':').map(Number);
-            if (modifier === 'PM' && hours !== 12) hours += 12;
-            if (modifier === 'AM' && hours === 12) hours = 0;
-            if (hours > 19 || (hours === 19 && minutes > 30)) return true;
-            return false;
-        })
-        .map(d => `${d.name} (${d.supervisor})`);
-
-      let text = `✅ *Daily Protocol Completed*\n\nDate: ${new Date().toLocaleDateString('en-IN')}\nIT Verified by: ${itName}\n\n`;
-      if (lateList.length > 0) {
-          text += `⚠️ *LATE SUBMISSIONS (>7:30 PM):*\n`;
-          lateList.forEach(item => text += `- ${item}\n`);
-      } else {
-          text += `🌟 All departments submitted on time.\n`;
-      }
-      text += `\n- Sent via SOL App`;
-      window.location.href = `https://wa.me/${OWNER_PHONE}?text=${encodeURIComponent(text)}`;
+      window.location.href = `https://wa.me/${OWNER_PHONE}`;
   };
 
   const completedCount = data.filter(d => d.completed).length;
@@ -137,240 +146,172 @@ export default function Home() {
   const activeDept = data.find(d => d.id === activeDeptId);
   const currentLink = activeDept?.savedLink || DEFAULT_LINKS[activeDept?.id || ''] || '';
 
-  if (loading) return (
-    <div className="flex h-screen w-full items-center justify-center bg-[#000510] text-white">
-      <div className="flex flex-col items-center gap-6 animate-pulse">
-        <div className="h-16 w-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin shadow-[0_0_50px_rgba(59,130,246,0.5)]"></div>
-        <span className="text-sm font-bold tracking-[0.3em] uppercase text-blue-400">System Initializing</span>
-      </div>
-    </div>
-  );
+  if (loading) return (<div className="flex h-screen w-full items-center justify-center bg-[#000510] text-white"><Loader2 className="animate-spin text-blue-500" size={48}/></div>);
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-100 font-sans overflow-hidden relative selection:bg-blue-500 selection:text-white">
       
-      {/* Background Ambience */}
+      {/* Dynamic Background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute inset-0 bg-[#0f172a]" />
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/20 rounded-full blur-[120px] animate-[pulse_10s_infinite]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-indigo-600/20 rounded-full blur-[120px] animate-[pulse_15s_infinite_reverse]" />
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 rounded-full blur-[120px] animate-[pulse_8s_infinite]" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-600/10 rounded-full blur-[120px] animate-[pulse_10s_infinite_reverse]" />
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 mix-blend-overlay"></div>
       </div>
 
-      {/* --- 🔐 OWNER LOGIN MODAL (UPDATED) --- */}
+      {/* --- OWNER LOGIN MODAL --- */}
       {showOwnerLogin && (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300">
-           <div className="bg-[#1e293b] border border-slate-700 p-8 rounded-2xl w-full max-w-sm text-center relative shadow-2xl">
-              <button 
-                onClick={() => { setShowOwnerLogin(false); setOwnerError(''); }}
-                className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
-              >
-                <X size={20}/>
-              </button>
-              
-              <div className="mx-auto w-16 h-16 bg-blue-600/20 rounded-full flex items-center justify-center mb-4 text-blue-400 border border-blue-500/30">
-                 <BarChart3 size={32} />
-              </div>
-              
-              <h2 className="text-xl font-bold text-white mb-1">Owner Access</h2>
-              <p className="text-slate-400 text-xs mb-6">Enter Master PIN to view Dashboard</p>
-              
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
+           <div className="bg-[#1e293b] border border-slate-700 p-8 rounded-3xl w-full max-w-sm text-center relative shadow-2xl">
+              <button onClick={() => {setShowOwnerLogin(false); setOwnerError('')}} className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"><X size={20}/></button>
+              <div className="mx-auto w-16 h-16 bg-blue-600/20 rounded-full flex items-center justify-center mb-4 text-blue-400 ring-4 ring-blue-500/10"><BarChart3 size={32} /></div>
+              <h2 className="text-xl font-bold text-white mb-1">Command Access</h2>
+              <p className="text-slate-400 text-xs mb-6">Master Verification Required</p>
               <input 
                 type="password" 
-                className={`w-full bg-slate-900 border rounded-xl h-12 text-center text-white font-bold tracking-[0.5em] mb-4 focus:outline-none transition-all
-                  ${ownerError ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'}
-                `}
-                maxLength={4} 
-                value={ownerPin} 
-                onChange={e => { setOwnerPin(e.target.value); setOwnerError(''); }}
-                placeholder="••••"
+                className={`w-full bg-slate-900 border rounded-xl h-14 text-center text-white text-xl font-bold tracking-[0.5em] mb-4 focus:outline-none transition-all ${ownerError ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'}`}
+                maxLength={4} value={ownerPin} onChange={e => {setOwnerPin(e.target.value); setOwnerError('')}} placeholder="••••"
                 onKeyDown={(e) => e.key === 'Enter' && handleOwnerLogin()}
               />
-              
-              <button 
-                onClick={handleOwnerLogin} 
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)]"
-              >
-                ACCESS DASHBOARD
-              </button>
-
-              {/* Error Message appears here now */}
-              {ownerError && (
-                <div className="text-red-400 text-xs font-bold mt-4 animate-pulse flex items-center justify-center gap-1">
-                    <AlertTriangle size={12}/> {ownerError}
-                </div>
-              )}
+              <button onClick={handleOwnerLogin} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-blue-600/20">ACCESS CONSOLE</button>
+              {ownerError && <div className="text-red-400 text-xs font-bold mt-4 animate-pulse flex items-center justify-center gap-1"><AlertTriangle size={12}/> {ownerError}</div>}
            </div>
         </div>
       )}
 
-      {/* --- 🖥️ EMBEDDED WORKSPACE (IFRAME) --- */}
+      {/* --- EMBEDDED WORKSPACE --- */}
       {embeddedLink && (
          <div className="fixed inset-0 z-[60] flex flex-col animate-in slide-in-from-bottom-10 duration-500 bg-[#0f172a]">
-            {/* Toolbar */}
             <div className="h-16 bg-[#0f172a]/95 backdrop-blur-xl border-b border-white/10 flex items-center justify-between px-6 shadow-2xl z-50">
                 <div className="flex items-center gap-4">
-                    <div className="bg-blue-600/20 text-blue-400 p-2 rounded-lg border border-blue-500/30"><LayoutGrid size={20}/></div>
+                    <div className="bg-blue-600/20 text-blue-400 p-2.5 rounded-xl border border-blue-500/30"><LayoutGrid size={20}/></div>
                     <div>
                         <h3 className="text-base font-bold text-white leading-tight">{activeDept?.name}</h3>
-                        <p className="text-[10px] text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-                            Live Workspace
-                        </p>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wider flex items-center gap-1"><span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>Live Workspace</p>
                     </div>
                 </div>
-
-                <div className="flex items-center gap-4">
-                   <p className="hidden md:block text-xs text-slate-500 italic">Changes save automatically to Google Sheets</p>
-                   <button 
-                       onClick={handleSaveAndClose}
-                       disabled={isSyncing}
-                       className="group relative flex items-center gap-3 bg-green-600 hover:bg-green-500 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-[0_0_20px_rgba(22,163,74,0.3)] hover:shadow-[0_0_30px_rgba(22,163,74,0.5)] overflow-hidden"
-                   >
-                       {isSyncing ? (
-                         <>
-                            <Loader2 size={16} className="animate-spin" />
-                            <span>SYNCING...</span>
-                         </>
-                       ) : (
-                         <>
-                            <Save size={16} />
-                            <span>SAVE & CLOSE</span>
-                         </>
-                       )}
-                   </button>
-                </div>
+                <button onClick={handleSaveAndClose} disabled={isSyncing} className="flex items-center gap-3 bg-green-600 hover:bg-green-500 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-lg shadow-green-600/20">
+                   {isSyncing ? <><Loader2 size={16} className="animate-spin" /><span>SYNCING...</span></> : <><Save size={16} /><span>SAVE & CLOSE</span></>}
+                </button>
             </div>
-            
-            {/* Iframe Container */}
             <div className="flex-1 relative bg-[#0f172a]">
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-                    <Loader2 size={40} className="text-blue-500 animate-spin opacity-50"/>
-                </div>
-                
-                <iframe 
-                    src={embeddedLink} 
-                    className={`relative z-10 w-full h-full border-0 transition-opacity duration-700 ${isSyncing ? 'opacity-50 scale-[0.99] blur-sm' : 'opacity-100'}`}
-                    allow="clipboard-write"
-                />
-
-                {/* Sync Overlay */}
-                {isSyncing && (
-                  <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
-                      <div className="bg-[#0f172a] border border-blue-500/50 p-6 rounded-2xl shadow-2xl flex flex-col items-center gap-4 animate-in zoom-in-95">
-                          <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center text-blue-400">
-                             <Cloud size={32} className="animate-pulse"/>
-                          </div>
-                          <div className="text-center">
-                             <h4 className="text-white font-bold text-lg">Syncing Workspace</h4>
-                             <p className="text-slate-400 text-xs mt-1">Returning to Command Center...</p>
-                          </div>
-                      </div>
-                  </div>
-                )}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"><Loader2 size={40} className="text-blue-500 animate-spin opacity-50"/></div>
+                <iframe src={embeddedLink} className={`relative z-10 w-full h-full border-0 transition-opacity duration-700 ${isSyncing ? 'opacity-50 scale-[0.99] blur-sm' : 'opacity-100'}`} allow="clipboard-write"/>
             </div>
          </div>
       )}
 
       {/* --- HEADER --- */}
-      <header className="relative z-10 w-full px-8 py-6 flex items-center justify-between border-b border-white/5 bg-white/5 backdrop-blur-md">
+      <header className="relative z-10 w-full px-6 md:px-10 py-6 flex items-center justify-between">
         <div className="flex items-center gap-6">
-           <div className="relative h-12 w-40 hover:brightness-125 transition-all">
+           {/* LOGO AREA */}
+           <div className="relative h-10 w-32 md:h-12 md:w-40 hover:opacity-80 transition-opacity cursor-pointer">
              <Image src="/logo.webp" alt="Logo" fill className="object-contain object-left" priority />
            </div>
            
-           {/* DASHBOARD BUTTON */}
-           <button 
-             onClick={() => setShowOwnerLogin(true)}
-             className="hidden md:flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg text-xs font-bold border border-white/10 transition-all hover:scale-105"
-           >
-             <BarChart3 size={14} />
-             DASHBOARD
+           <div className="hidden lg:block h-8 w-px bg-white/10"></div>
+           
+           <button onClick={() => setShowOwnerLogin(true)} className="hidden lg:flex items-center gap-2 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white px-4 py-2 rounded-lg text-xs font-bold border border-white/5 transition-all">
+             <BarChart3 size={14} /> DASHBOARD
            </button>
         </div>
 
         <div className="flex items-center gap-6">
           <div className="text-right hidden sm:block">
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">IST Date</div>
-            <div className="text-xl font-black text-white tracking-tight">{dateStr}</div>
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Current Date</div>
+            <div className="text-lg font-bold text-white tracking-tight">{dateStr}</div>
           </div>
           <div className="relative h-14 w-14 flex items-center justify-center">
-            <svg className="h-full w-full -rotate-90" viewBox="0 0 36 36">
-              <path className="text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="4" />
-              <path className="text-blue-500 drop-shadow-[0_0_10px_rgba(59,130,246,0.8)] transition-all duration-1000 ease-out" strokeDasharray={`${progress}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="4" />
+            <svg className="h-full w-full -rotate-90 transform" viewBox="0 0 36 36">
+              <path className="text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
+              <path className="text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.6)] transition-all duration-1000 ease-out" strokeDasharray={`${progress}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
             </svg>
-            <span className="absolute text-[10px] font-bold">{Math.round(progress)}%</span>
+            <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">{Math.round(progress)}%</div>
           </div>
         </div>
       </header>
 
-      {/* --- MAIN CONTENT --- */}
-      <main className="relative z-10 container mx-auto px-6 py-6 h-[calc(100vh-100px)] flex flex-col">
+      {/* --- MAIN GRID --- */}
+      <main className="relative z-10 container mx-auto px-6 py-6 h-[calc(100vh-100px)] flex flex-col justify-center">
         
         {/* Warning Banner */}
-        <div className="mb-6 bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex items-center justify-center gap-3 text-amber-200">
-            <AlertTriangle size={18} className="animate-pulse" />
-            <span className="text-sm font-bold tracking-wide">
-                DEADLINE NOTICE: Reports submitted after <span className="text-white bg-amber-600/40 px-2 py-0.5 rounded">7:30 PM</span> will be flagged to Management.
+        <div className="mb-8 bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 flex items-center justify-center gap-3 text-amber-200 backdrop-blur-sm max-w-4xl mx-auto w-full">
+            <div className="p-2 bg-amber-500/10 rounded-full"><AlertTriangle size={16} className="animate-pulse" /></div>
+            <span className="text-xs md:text-sm font-medium tracking-wide">
+                <strong className="text-amber-400">7:30 PM DEADLINE:</strong> Late submissions are automatically flagged in the Owner's Console.
             </span>
         </div>
 
-        {/* Tiles Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 h-full max-h-[600px]">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl mx-auto">
           {data.map((dept) => {
             const isIT = dept.id === 'it_check';
             const isLocked = isIT ? tasksCompleted < 5 : false;
             const isCompleted = dept.completed;
             const isLate = dept.timestamp.includes('LATE');
             
+            // 🎨 GET THEME
+            const theme = DEPT_THEME[dept.id] || { icon: Activity, color: 'text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-700' };
+            const Icon = theme.icon;
+
             return (
               <button
                 key={dept.id}
                 disabled={isLocked}
                 onClick={() => !isLocked && setActiveDeptId(dept.id)}
                 className={`
-                  group relative w-full h-full min-h-[160px] rounded-2xl p-6 text-left transition-all duration-500 border backdrop-blur-md flex flex-col justify-between overflow-hidden
+                  group relative w-full min-h-[180px] rounded-[2rem] p-6 text-left transition-all duration-500 border backdrop-blur-xl flex flex-col justify-between overflow-hidden
                   ${isCompleted 
-                    ? isLate ? 'bg-red-900/10 border-red-500/30' : 'bg-blue-900/20 border-blue-500/30'
+                    ? isLate 
+                        ? 'bg-red-900/10 border-red-500/30 hover:bg-red-900/20' 
+                        : 'bg-emerald-900/10 border-emerald-500/30 hover:bg-emerald-900/20'
                     : isLocked 
-                      ? 'bg-slate-900/40 border-slate-800 cursor-not-allowed opacity-60 grayscale' 
-                      : 'bg-slate-800/40 border-slate-700 hover:bg-slate-700/50 hover:border-slate-500 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(255,255,255,0.1)]'
+                      ? 'bg-slate-900/40 border-slate-800 opacity-50 grayscale cursor-not-allowed' 
+                      : `bg-[#1e293b]/40 border-slate-700/50 hover:bg-[#1e293b]/60 ${theme.border} hover:-translate-y-1 hover:shadow-2xl`
                   }
                 `}
               >
+                {/* Internal Glow Gradient */}
                 {!isLocked && !isCompleted && (
-                   <div className="absolute -right-10 -top-10 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl group-hover:bg-blue-400/30 transition-all"></div>
+                    <div className={`absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br ${theme.gradient} blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity duration-700`}></div>
                 )}
 
-                <div className="flex justify-between items-start w-full">
+                <div className="flex justify-between items-start w-full relative z-10">
+                  {/* Icon Container */}
                   <div className={`
-                    p-3 rounded-xl transition-all duration-300
-                    ${isCompleted ? 'bg-blue-500/20 text-blue-400' : isLocked ? 'bg-slate-800 text-slate-500' : 'bg-white/10 text-white group-hover:bg-blue-600 group-hover:text-white'}
+                    p-3.5 rounded-2xl transition-all duration-500 shadow-inner
+                    ${isCompleted 
+                        ? 'bg-emerald-500/20 text-emerald-400' 
+                        : isLocked 
+                            ? 'bg-slate-800 text-slate-500' 
+                            : `${theme.bg} ${theme.color} group-hover:scale-110 group-hover:shadow-lg`
+                    }
                   `}>
-                    {isCompleted ? <CheckCircle2 size={24} /> : isIT ? <ServerCog size={24}/> : isLocked ? <Lock size={24} /> : <Activity size={24} />}
+                    {isCompleted ? <CheckCircle2 size={28} strokeWidth={2.5}/> : isLocked ? <Lock size={28} /> : <Icon size={28} strokeWidth={1.5}/>}
                   </div>
                   
-                  <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border
+                  {/* Status Tag */}
+                  <div className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border flex items-center gap-1.5
                     ${isCompleted 
-                        ? isLate ? 'bg-red-900/40 border-red-500 text-red-200' : 'bg-blue-900/40 border-blue-500/30 text-blue-300' 
+                        ? isLate ? 'bg-red-500/10 border-red-500/20 text-red-300' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' 
                         : isLocked ? 'bg-slate-900 border-slate-700 text-slate-500' 
-                        : 'bg-red-500/20 border-red-500/30 text-red-300 animate-pulse'}
+                        : 'bg-slate-700/30 border-slate-600 text-slate-400 group-hover:bg-white/5 group-hover:text-white group-hover:border-white/20'}
                   `}>
-                    {isCompleted ? (isLate ? 'LATE SUBMISSION' : 'COMPLETED') : isLocked ? 'LOCKED' : 'ACTION REQ.'}
+                    <span className={`w-1.5 h-1.5 rounded-full ${isCompleted ? (isLate ? 'bg-red-500' : 'bg-emerald-500') : isLocked ? 'bg-slate-600' : 'bg-blue-500 animate-pulse'}`}></span>
+                    {isCompleted ? (isLate ? 'Late' : 'Done') : isLocked ? 'Locked' : 'Active'}
                   </div>
                 </div>
 
-                <div>
-                  <h3 className="text-lg md:text-xl font-bold text-white mb-1 group-hover:text-blue-200 transition-colors">
+                <div className="mt-8 relative z-10">
+                  <h3 className="text-xl font-bold text-white mb-1 group-hover:text-white transition-colors tracking-tight">
                     {dept.name}
                   </h3>
                   {isCompleted ? (
-                    <div className="text-xs text-slate-400 font-mono">
-                      By: <span className="text-white">{dept.supervisor}</span> at {dept.timestamp.replace('🔴 LATE', '')}
+                    <div className="text-xs text-slate-400 font-medium flex items-center gap-1.5 mt-2">
+                       By {dept.supervisor} • {dept.timestamp.replace('🔴 LATE', '')}
                     </div>
                   ) : (
-                    <div className="text-xs text-slate-400 group-hover:text-slate-300 flex items-center gap-2">
-                       {isLocked ? 'Waiting for sequence...' : 'Click to Update Status'}
+                    <div className="text-xs text-slate-500 group-hover:text-slate-300 flex items-center gap-2 font-medium mt-2">
+                       {isLocked ? 'Waiting for previous steps...' : 'Tap to open workspace'}
                        {!isLocked && <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />}
                     </div>
                   )}
@@ -381,36 +322,36 @@ export default function Home() {
         </div>
       </main>
 
-      {/* --- COMPLETION MODAL --- */}
+      {/* --- TASK MODAL --- */}
       {activeDept && !embeddedLink && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div 
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
-            onClick={() => setActiveDeptId(null)}
-          />
-
-          <div className="relative w-full max-w-lg bg-[#0f172a] border border-slate-700 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="bg-slate-900/50 p-6 border-b border-slate-800 flex justify-between items-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-xl animate-in fade-in duration-300" onClick={() => setActiveDeptId(null)}/>
+          <div className="relative w-full max-w-lg bg-[#0f172a] border border-slate-700 rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            
+            {/* Modal Header */}
+            <div className="bg-[#1e293b]/80 p-6 border-b border-slate-700/50 flex justify-between items-center backdrop-blur-md">
               <div>
                 <h2 className="text-xl font-bold text-white">{activeDept.name}</h2>
+                <p className="text-xs text-slate-400 mt-1 flex items-center gap-1"><ShieldCheck size={12}/> Secure Protocol</p>
               </div>
-              <button onClick={() => setActiveDeptId(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-                <X size={20} className="text-slate-400" />
-              </button>
+              <button onClick={() => setActiveDeptId(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20} className="text-slate-400" /></button>
             </div>
 
-            <div className="p-6">
+            <div className="p-8">
               {activeDept.completed ? (
                 <div className="text-center py-8">
-                  <div className="inline-flex p-4 bg-green-500/20 rounded-full text-green-400 mb-4">
-                    <CheckCircle2 size={48} />
+                  <div className="inline-flex p-5 bg-emerald-500/10 rounded-full text-emerald-400 mb-6 border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.15)]">
+                    <CheckCircle2 size={56} strokeWidth={1.5} />
                   </div>
-                  <h3 className="text-white font-bold text-lg">Already Submitted</h3>
-                  <p className="text-slate-400 text-sm mt-2">
-                    Supervisor: <span className="text-white">{activeDept.supervisor}</span>
-                    <br/>
-                    Time: {activeDept.timestamp}
-                  </p>
+                  <h3 className="text-white font-bold text-xl">Submission Received</h3>
+                  <div className="mt-6 bg-slate-900/50 rounded-2xl p-5 border border-slate-800 text-left space-y-2">
+                     <div className="flex justify-between items-center border-b border-slate-800 pb-2 mb-2">
+                        <span className="text-xs text-slate-500 uppercase tracking-widest font-bold">Log Details</span>
+                        <div className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">VERIFIED</div>
+                     </div>
+                     <p className="text-sm text-slate-400 flex justify-between">Supervisor: <span className="text-white font-bold">{activeDept.supervisor}</span></p>
+                     <p className="text-sm text-slate-400 flex justify-between">Time: <span className="text-white font-bold">{activeDept.timestamp}</span></p>
+                  </div>
                 </div>
               ) : (
                 <ActiveForm 
@@ -430,7 +371,7 @@ export default function Home() {
   );
 }
 
-// --- SUB-COMPONENT: FORM ---
+// --- FORM COMPONENT ---
 function ActiveForm({ dept, requiredPin, savedLink, onOpenSheet, onSubmit, isSubmitting }: any) {
   const [name, setName] = useState('');
   const [comment, setComment] = useState('');
@@ -454,93 +395,71 @@ function ActiveForm({ dept, requiredPin, savedLink, onOpenSheet, onSubmit, isSub
 
   if (!isVerified) {
     return (
-      <div className="space-y-6 text-center">
-        <div className="mx-auto w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center text-slate-400">
-           <KeyRound size={24} />
+      <div className="space-y-8 text-center py-4">
+        <div className="mx-auto w-20 h-20 bg-slate-800/50 rounded-[2rem] flex items-center justify-center text-slate-400 border border-slate-700 shadow-inner">
+           <KeyRound size={36} strokeWidth={1.5} />
         </div>
         <div>
-           <h3 className="text-white font-bold">Identity Verification</h3>
-           <p className="text-slate-400 text-xs mt-1">Enter Department PIN</p>
+           <h3 className="text-white font-bold text-xl">Identity Verification</h3>
+           <p className="text-slate-400 text-sm mt-2">Enter your 4-digit Department PIN</p>
         </div>
-        <div className="flex justify-center gap-2">
+        <div className="flex justify-center">
           <input 
-            type="password" 
-            maxLength={4} 
-            className="w-48 h-12 bg-slate-900 border border-slate-700 rounded-xl text-center text-xl font-bold text-white tracking-[0.5em] focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all" 
-            placeholder="PIN" 
-            value={pin} 
-            onChange={(e) => { setPin(e.target.value); setError(''); }} 
-            onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
+            type="password" maxLength={4} className="w-56 h-16 bg-slate-900 border border-slate-600 rounded-2xl text-center text-3xl font-bold text-white tracking-[0.5em] focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/20 transition-all placeholder:text-slate-800" placeholder="••••" value={pin} 
+            onChange={(e) => { setPin(e.target.value); setError(''); }} onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
           />
         </div>
-        <button 
-           onClick={handleVerify} 
-           className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)]"
-        >
-           VERIFY ACCESS
-        </button>
-        {error && <div className="text-red-400 text-xs font-bold animate-pulse">{error}</div>}
+        <button onClick={handleVerify} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-blue-600/20 hover:shadow-blue-600/40 hover:-translate-y-0.5">VERIFY & PROCEED</button>
+        {error && <div className="text-red-400 text-xs font-bold animate-pulse flex items-center justify-center gap-1"><AlertTriangle size={12}/> {error}</div>}
       </div>
     );
   }
 
   return (
-    <div className="space-y-5 animate-in slide-in-from-bottom-5 duration-300">
+    <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-300">
       
-      {/* 1. BUTTON: TRIGGERS EMBEDDED IFRAME */}
       {dept.id !== 'it_check' && (
-        <button 
-            onClick={() => onOpenSheet(savedLink || '#')}
-            className="group flex items-center justify-between w-full bg-[#1e293b] border border-slate-700 hover:border-blue-500/50 p-4 rounded-xl transition-all hover:shadow-[0_0_20px_rgba(59,130,246,0.15)]"
-        >
-          <div className="flex items-center gap-3">
-             <div className="p-2 bg-green-500/20 text-green-400 rounded-lg group-hover:scale-110 transition-transform"><Maximize2 size={20}/></div>
-             <div className="text-left">
-                <div className="text-sm font-bold text-white group-hover:text-blue-300 transition-colors">Launch Work Sheet</div>
-                <div className="text-[10px] text-slate-400">Opens inside App</div>
-             </div>
+        <button onClick={() => onOpenSheet(savedLink || '#')} className="group flex items-center justify-between w-full bg-[#1e293b] border border-slate-700 hover:border-blue-500/50 p-4 rounded-2xl transition-all hover:shadow-lg hover:shadow-blue-500/10 hover:-translate-y-0.5">
+          <div className="flex items-center gap-4">
+             <div className="p-3 bg-blue-500/20 text-blue-400 rounded-xl group-hover:bg-blue-500 group-hover:text-white transition-colors"><Maximize2 size={24}/></div>
+             <div className="text-left"><div className="text-sm font-bold text-white">Launch Work Sheet</div><div className="text-[10px] text-slate-400">Opens integrated workspace</div></div>
           </div>
-          <ExternalLink size={16} className="text-slate-500 group-hover:text-white transition-colors"/>
+          <ExternalLink size={18} className="text-slate-500 group-hover:text-white transition-colors"/>
         </button>
       )}
 
-      <div className="h-px bg-slate-800 w-full my-4"></div>
+      <div className="h-px bg-slate-800 w-full"></div>
 
-      {/* 2. FORM */}
       <div className="space-y-4">
-        <div className="grid gap-5 md:grid-cols-2">
-            <div className="relative">
-                <input className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none peer placeholder-transparent" id="n" placeholder="N" value={name} onChange={e => setName(e.target.value)}/>
-                <label htmlFor="n" className="absolute left-4 top-[-10px] bg-[#0f172a] px-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider transition-all peer-placeholder-shown:top-3.5 peer-focus:top-[-10px] peer-focus:text-blue-500 pointer-events-none">Supervisor Name</label>
+        <div className="grid gap-4 md:grid-cols-2">
+            <div className="relative group">
+                <input className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3.5 text-sm text-white focus:border-blue-500 focus:outline-none peer placeholder-transparent transition-all" id="n" placeholder="N" value={name} onChange={e => setName(e.target.value)}/>
+                <label htmlFor="n" className="absolute left-4 top-[-10px] bg-[#0f172a] px-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-slate-500 peer-focus:top-[-10px] peer-focus:text-blue-500 pointer-events-none">Supervisor Name</label>
             </div>
-            <div className="relative">
-                <input className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:border-blue-500 focus:outline-none peer placeholder-transparent" id="c" placeholder="C" value={comment} onChange={e => setComment(e.target.value)}/>
-                <label htmlFor="c" className="absolute left-4 top-[-10px] bg-[#0f172a] px-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider transition-all peer-placeholder-shown:top-3.5 peer-focus:top-[-10px] peer-focus:text-blue-500 pointer-events-none">Comments</label>
+            <div className="relative group">
+                <input className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3.5 text-sm text-white focus:border-blue-500 focus:outline-none peer placeholder-transparent transition-all" id="c" placeholder="C" value={comment} onChange={e => setComment(e.target.value)}/>
+                <label htmlFor="c" className="absolute left-4 top-[-10px] bg-[#0f172a] px-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-slate-500 peer-focus:top-[-10px] peer-focus:text-blue-500 pointer-events-none">Comments (Optional)</label>
             </div>
         </div>
 
         {dept.id !== 'it_check' && (
-            <div className="relative mt-2">
+            <div className="relative group">
                 <div className="flex items-center gap-3">
-                    <div className="p-3 bg-green-500/10 rounded-xl text-green-400 shrink-0"><LinkIcon size={20} /></div>
+                    <div className="p-3 bg-slate-800 rounded-xl text-slate-400 shrink-0 border border-slate-700"><LinkIcon size={20} /></div>
                     <div className="relative w-full">
-                        <input className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:border-green-500 focus:outline-none peer placeholder-transparent" id="l" placeholder="L" value={link} onChange={e => setLink(e.target.value)}/>
-                        <label htmlFor="l" className="absolute left-4 top-[-10px] bg-[#0f172a] px-1 text-[10px] font-bold text-green-500 uppercase tracking-wider transition-all peer-placeholder-shown:top-3.5 peer-focus:top-[-10px] pointer-events-none">Paste New Link (After Editing)</label>
+                        <input className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3.5 text-sm text-white focus:border-green-500 focus:outline-none peer placeholder-transparent transition-all" id="l" placeholder="L" value={link} onChange={e => setLink(e.target.value)}/>
+                        <label htmlFor="l" className="absolute left-4 top-[-10px] bg-[#0f172a] px-1 text-[10px] font-bold text-green-500 uppercase tracking-wider transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-slate-500 peer-focus:top-[-10px] pointer-events-none">Paste New Link (After Editing)</label>
                     </div>
                 </div>
             </div>
         )}
       </div>
 
-      <button 
-          disabled={isSubmitting} 
-          onClick={handleFinalSubmit} 
-          className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 mt-4 shadow-[0_0_20px_rgba(22,163,74,0.3)]"
-      >
-          {isSubmitting ? <Loader2 className="animate-spin" size={20}/> : <><span>CONFIRM COMPLETION</span><CheckCircle2 size={18} /></>}
+      <button disabled={isSubmitting} onClick={handleFinalSubmit} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 mt-2 shadow-lg shadow-emerald-600/20 hover:shadow-emerald-600/40 hover:-translate-y-0.5">
+          {isSubmitting ? <Loader2 className="animate-spin" size={20}/> : <><span>CONFIRM & SUBMIT</span><CheckCircle2 size={18} /></>}
       </button>
       
-      {error && <div className="text-center text-xs text-red-400 font-bold">{error}</div>}
+      {error && <div className="text-center text-xs text-red-400 font-bold animate-pulse">{error}</div>}
     </div>
   );
 }
