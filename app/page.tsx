@@ -22,7 +22,7 @@ const DEPARTMENT_PINS: Record<string, string> = {
   'basement': '2002',
   'quality': '3003',
   'stock': '4004',
-  'attendance': '5005',
+  'attendance': '9389',
   'it_check': '6006'
 };
 
