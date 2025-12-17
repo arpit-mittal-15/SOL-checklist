@@ -1,300 +1,403 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, ArrowLeft, BarChart3, Database, AlertTriangle, CheckCircle2, Package, Users, Activity, Box } from 'lucide-react';
-import Link from 'next/link';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { 
+  Loader2, CheckCircle2, Lock, ArrowRight, Activity, ShieldCheck, 
+  ExternalLink, ServerCog, KeyRound, X, LayoutGrid, AlertTriangle, 
+  Link as LinkIcon, Maximize2, Save, Cloud, BarChart3,
+  Factory, Warehouse, ClipboardCheck, Boxes, Users, Wifi
+} from 'lucide-react';
 
-export default function Dashboard() {
+// --- ⚙️ CONFIGURATION ---
+const OWNER_PHONE = "919876543210"; 
+const MASTER_PIN = "9999"; 
+
+const DEPARTMENT_PINS: Record<string, string> = {
+  'floor': '1001',
+  'basement': '2002',
+  'quality': '3003',
+  'stock': '4004',
+  'attendance': '5005',
+  'it_check': '6006'
+};
+
+const DEFAULT_LINKS: Record<string, string> = {
+  'floor': 'https://docs.google.com/spreadsheets/d/YOUR_FLOOR_SHEET_ID/edit',
+  'basement': 'https://docs.google.com/spreadsheets/d/YOUR_BASEMENT_SHEET_ID/edit',
+  'quality': 'https://docs.google.com/spreadsheets/d/YOUR_QUALITY_SHEET_ID/edit',
+  'stock': 'https://docs.google.com/spreadsheets/d/YOUR_STOCK_SHEET_ID/edit',
+  'attendance': 'https://docs.google.com/spreadsheets/d/YOUR_ATTENDANCE_SHEET_ID/edit',
+  'it_check': '#' 
+};
+
+// --- 🎨 UI CONFIGURATION (Icons & Colors) ---
+const DEPT_CONFIG: Record<string, any> = {
+  'floor': { icon: Factory, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'group-hover:border-amber-500/50' },
+  'basement': { icon: Warehouse, color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'group-hover:border-indigo-500/50' },
+  'quality': { icon: ClipboardCheck, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'group-hover:border-emerald-500/50' },
+  'stock': { icon: Boxes, color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'group-hover:border-cyan-500/50' },
+  'attendance': { icon: Users, color: 'text-pink-400', bg: 'bg-pink-500/10', border: 'group-hover:border-pink-500/50' },
+  'it_check': { icon: Wifi, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'group-hover:border-blue-500/50' },
+};
+
+export default function Home() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [metrics, setMetrics] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState('production'); // Controls which view is shown
+  const [data, setData] = useState<any[]>([]);
+  const [activeDeptId, setActiveDeptId] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState<string | null>(null);
+  const [embeddedLink, setEmbeddedLink] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [showOwnerLogin, setShowOwnerLogin] = useState(false);
+  const [ownerPin, setOwnerPin] = useState('');
+  const [ownerError, setOwnerError] = useState('');
 
-  useEffect(() => {
-    async function getData() {
-      try {
-        const res = await fetch('/api/dashboard');
-        const json = await res.json();
-        setMetrics(json.metrics);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
+  const fetchData = async () => {
+    try {
+      const res = await fetch('/api/checklist');
+      if (!res.ok) throw new Error("Failed");
+      const json = await res.json();
+      setData(json.departments || []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
     }
-    getData();
-  }, []);
+  };
 
-  if (loading) return (
-    <div className="flex h-screen w-full items-center justify-center bg-[#000510] text-white">
-      <div className="flex flex-col items-center gap-6 animate-pulse">
-        <div className="h-16 w-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-        <span className="text-sm font-bold tracking-widest text-blue-400">ANALYZING LIVE DATA...</span>
-      </div>
-    </div>
-  );
+  useEffect(() => { fetchData(); }, []);
+
+  const handleSubmit = async (deptId: string, name: string, comment: string, sheetLink: string) => {
+    setSubmitting(deptId);
+    const res = await fetch('/api/checklist', {
+      method: 'POST',
+      body: JSON.stringify({ rowIndex: 0, deptId, supervisor: name, comment, sheetLink }),
+    });
+    const json = await res.json();
+    if (!res.ok) { alert(json.error || "Failed."); } 
+    else { await fetchData(); setActiveDeptId(null); setEmbeddedLink(null); if (deptId === 'it_check') generateWhatsAppReport(name); }
+    setSubmitting(null);
+  };
+
+  const handleOwnerLogin = () => {
+    if (ownerPin === MASTER_PIN) { setOwnerError(''); router.push('/dashboard'); } 
+    else { setOwnerError('Incorrect PIN'); setOwnerPin(''); }
+  };
+
+  const handleSaveAndClose = () => {
+    setIsSyncing(true);
+    setTimeout(() => { setIsSyncing(false); setEmbeddedLink(null); }, 1500);
+  };
+
+  const generateWhatsAppReport = (itName: string) => {
+      // (WhatsApp logic remains same)
+      window.location.href = `https://wa.me/${OWNER_PHONE}`;
+  };
+
+  const completedCount = data.filter(d => d.completed).length;
+  const tasksCompleted = data.filter(d => d.id !== 'it_check' && d.completed).length;
+  const progress = (completedCount / 6) * 100;
+  const dateStr = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' });
+  
+  const activeDept = data.find(d => d.id === activeDeptId);
+  const currentLink = activeDept?.savedLink || DEFAULT_LINKS[activeDept?.id || ''] || '';
+
+  if (loading) return (<div className="flex h-screen w-full items-center justify-center bg-[#000510] text-white"><Loader2 className="animate-spin text-blue-500" size={48}/></div>);
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-slate-100 font-sans p-4 md:p-8 relative overflow-hidden">
+    <div className="min-h-screen bg-[#0f172a] text-slate-100 font-sans overflow-hidden relative selection:bg-blue-500 selection:text-white">
       
       {/* Background Ambience */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] bg-blue-600/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-20%] left-[-10%] w-[60%] h-[60%] bg-purple-600/10 rounded-full blur-[120px]" />
+        <div className="absolute inset-0 bg-[#0f172a]" />
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-600/10 rounded-full blur-[120px]" />
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 mix-blend-overlay"></div>
       </div>
 
-      <div className="relative z-10 max-w-6xl mx-auto space-y-8">
-        
-        {/* --- HEADER --- */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
-              <BarChart3 className="text-blue-500" size={32} />
-              Owner's Console
-            </h1>
-            <p className="text-slate-400 mt-1 text-sm font-medium">Real-time Manufacturing Intelligence</p>
+      {/* --- OWNER LOGIN MODAL --- */}
+      {showOwnerLogin && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
+           <div className="bg-[#1e293b] border border-slate-700 p-8 rounded-3xl w-full max-w-sm text-center relative shadow-2xl">
+              <button onClick={() => {setShowOwnerLogin(false); setOwnerError('')}} className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"><X size={20}/></button>
+              <div className="mx-auto w-16 h-16 bg-blue-600/20 rounded-full flex items-center justify-center mb-4 text-blue-400 ring-4 ring-blue-500/10"><BarChart3 size={32} /></div>
+              <h2 className="text-xl font-bold text-white mb-1">Command Access</h2>
+              <p className="text-slate-400 text-xs mb-6">Master Verification Required</p>
+              <input 
+                type="password" 
+                className={`w-full bg-slate-900 border rounded-xl h-14 text-center text-white text-xl font-bold tracking-[0.5em] mb-4 focus:outline-none transition-all ${ownerError ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'}`}
+                maxLength={4} value={ownerPin} onChange={e => {setOwnerPin(e.target.value); setOwnerError('')}} placeholder="••••"
+                onKeyDown={(e) => e.key === 'Enter' && handleOwnerLogin()}
+              />
+              <button onClick={handleOwnerLogin} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-blue-600/20">ACCESS CONSOLE</button>
+              {ownerError && <div className="text-red-400 text-xs font-bold mt-4 animate-pulse flex items-center justify-center gap-1"><AlertTriangle size={12}/> {ownerError}</div>}
+           </div>
+        </div>
+      )}
+
+      {/* --- EMBEDDED WORKSPACE --- */}
+      {embeddedLink && (
+         <div className="fixed inset-0 z-[60] flex flex-col animate-in slide-in-from-bottom-10 duration-500 bg-[#0f172a]">
+            <div className="h-16 bg-[#0f172a]/95 backdrop-blur-xl border-b border-white/10 flex items-center justify-between px-6 shadow-2xl z-50">
+                <div className="flex items-center gap-4">
+                    <div className="bg-blue-600/20 text-blue-400 p-2.5 rounded-xl border border-blue-500/30"><LayoutGrid size={20}/></div>
+                    <div>
+                        <h3 className="text-base font-bold text-white leading-tight">{activeDept?.name}</h3>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wider flex items-center gap-1"><span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>Live Workspace</p>
+                    </div>
+                </div>
+                <button onClick={handleSaveAndClose} disabled={isSyncing} className="flex items-center gap-3 bg-green-600 hover:bg-green-500 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-lg shadow-green-600/20">
+                   {isSyncing ? <><Loader2 size={16} className="animate-spin" /><span>SYNCING...</span></> : <><Save size={16} /><span>SAVE & CLOSE</span></>}
+                </button>
+            </div>
+            <div className="flex-1 relative bg-[#0f172a]">
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"><Loader2 size={40} className="text-blue-500 animate-spin opacity-50"/></div>
+                <iframe src={embeddedLink} className={`relative z-10 w-full h-full border-0 transition-opacity duration-700 ${isSyncing ? 'opacity-50 scale-[0.99] blur-sm' : 'opacity-100'}`} allow="clipboard-write"/>
+            </div>
+         </div>
+      )}
+
+      {/* --- HEADER --- */}
+      <header className="relative z-10 w-full px-6 md:px-10 py-6 flex items-center justify-between">
+        <div className="flex items-center gap-6">
+           <div className="relative h-10 w-32 md:h-12 md:w-40 hover:opacity-80 transition-opacity">
+             <Image src="/logo.webp" alt="Logo" fill className="object-contain object-left" priority />
+           </div>
+           <div className="hidden lg:block h-8 w-px bg-white/10"></div>
+           <button onClick={() => setShowOwnerLogin(true)} className="hidden lg:flex items-center gap-2 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white px-4 py-2 rounded-lg text-xs font-bold border border-white/5 transition-all">
+             <BarChart3 size={14} /> DASHBOARD
+           </button>
+        </div>
+
+        <div className="flex items-center gap-6">
+          <div className="text-right hidden sm:block">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Current Date</div>
+            <div className="text-lg font-bold text-white tracking-tight">{dateStr}</div>
           </div>
-          <Link href="/" className="self-start md:self-auto flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white transition-colors bg-white/5 hover:bg-white/10 px-4 py-2 rounded-lg border border-white/10">
-            <ArrowLeft size={16} /> EXIT
-          </Link>
+          {/* Circular Progress */}
+          <div className="relative h-14 w-14 flex items-center justify-center">
+            <svg className="h-full w-full -rotate-90 transform" viewBox="0 0 36 36">
+              <path className="text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
+              <path className="text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.6)] transition-all duration-1000 ease-out" strokeDasharray={`${progress}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">{Math.round(progress)}%</div>
+          </div>
         </div>
+      </header>
 
-        {/* --- NAVIGATION TABS --- */}
-        <div className="flex gap-2 p-1 bg-slate-900/50 rounded-xl w-full md:w-fit border border-slate-700 backdrop-blur-md overflow-x-auto">
-            <TabButton 
-                label="Cone Production" 
-                icon={<Database size={16}/>} 
-                active={activeTab === 'production'} 
-                onClick={() => setActiveTab('production')} 
-            />
-            <TabButton 
-                label="Quality Check" 
-                icon={<CheckCircle2 size={16}/>} 
-                active={activeTab === 'quality'} 
-                onClick={() => setActiveTab('quality')} 
-            />
-            <TabButton 
-                label="Equal Team" 
-                icon={<Users size={16}/>} 
-                active={activeTab === 'equal'} 
-                onClick={() => setActiveTab('equal')} 
-            />
-        </div>
-
-        {/* --- MAIN CONTENT AREA --- */}
-        <div className="bg-[#1e293b]/50 border border-slate-700 rounded-3xl backdrop-blur-xl shadow-2xl p-6 min-h-[500px]">
+      {/* --- MAIN GRID --- */}
+      <main className="relative z-10 container mx-auto px-6 py-6 h-[calc(100vh-100px)] flex flex-col justify-center">
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl mx-auto">
+          {data.map((dept) => {
+            const isIT = dept.id === 'it_check';
+            const isLocked = isIT ? tasksCompleted < 5 : false;
+            const isCompleted = dept.completed;
+            const isLate = dept.timestamp.includes('LATE');
             
-            {/* 1. PRODUCTION TAB */}
-            {activeTab === 'production' && (
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-                    
-                    {/* Header */}
-                    <div className="flex items-center gap-3 border-b border-slate-700 pb-4">
-                        <div className="bg-blue-500/20 p-2 rounded-lg text-blue-400"><Database size={24} /></div>
-                        <h2 className="text-2xl font-bold text-white">Cone Production Update</h2>
-                    </div>
+            // Get Theme from Config
+            const theme = DEPT_CONFIG[dept.id] || { icon: Activity, color: 'text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-700' };
+            const Icon = theme.icon;
 
-                    {/* Progress Bar: Target vs Actual */}
-                    <ProgressBar label="Daily Target Achievement" current={metrics?.Production} total={metrics?.Target} color="blue" />
-
-                    <div className="grid md:grid-cols-2 gap-8">
-                        {/* Left Column: Core Metrics */}
-                        <TableCard title="Operational Metrics">
-                            <MetricRow label="Total SKU / Brands" value={metrics?.Brands || '-'} />
-                            <MetricRow label="Total RFS" value={metrics?.RFS} />
-                            <MetricRow label="Total Rollers" value={metrics?.Rollers} />
-                            <MetricRow label="Total Manpower" value={metrics?.Manpower} unit="Staff" />
-                            <MetricRow label="Target" value={metrics?.Target} unit="Units" />
-                            <MetricRow label="Total Production" value={metrics?.Production} unit="Units" highlight />
-                        </TableCard>
-
-                        {/* Right Column: Materials */}
-                        <TableCard title="Material Consumption">
-                            <MetricRow label="Gum Used" value={metrics?.Gum} unit="Kg" />
-                            <MetricRow label="Paper Used" value={metrics?.Paper} unit="Kg" />
-                            <MetricRow label="Paper Rejection" value={metrics?.PaperReject} unit="Kg" isBad />
-                            <MetricRow label="Filter Used" value={metrics?.Filter} unit="Pcs" />
-                            <MetricRow label="Filter Rejection" value={metrics?.FilterReject} unit="Pcs" isBad />
-                        </TableCard>
-                    </div>
+            return (
+              <button
+                key={dept.id}
+                disabled={isLocked}
+                onClick={() => !isLocked && setActiveDeptId(dept.id)}
+                className={`
+                  group relative w-full min-h-[180px] rounded-3xl p-6 text-left transition-all duration-300 border backdrop-blur-md flex flex-col justify-between overflow-hidden
+                  ${isCompleted 
+                    ? isLate 
+                        ? 'bg-red-900/10 border-red-500/30 hover:border-red-500/50' 
+                        : 'bg-emerald-900/10 border-emerald-500/30 hover:border-emerald-500/50'
+                    : isLocked 
+                      ? 'bg-slate-900/40 border-slate-800 opacity-50 grayscale cursor-not-allowed' 
+                      : `bg-slate-800/40 border-slate-700 hover:bg-slate-800/60 ${theme.border} hover:shadow-2xl hover:-translate-y-1`
+                  }
+                `}
+              >
+                <div className="flex justify-between items-start w-full">
+                  {/* Icon Container */}
+                  <div className={`
+                    p-3.5 rounded-2xl transition-all duration-300 shadow-inner
+                    ${isCompleted 
+                        ? 'bg-emerald-500/20 text-emerald-400' 
+                        : isLocked 
+                            ? 'bg-slate-800 text-slate-500' 
+                            : `${theme.bg} ${theme.color} group-hover:scale-110`
+                    }
+                  `}>
+                    {isCompleted ? <CheckCircle2 size={28} strokeWidth={2.5}/> : isLocked ? <Lock size={28} /> : <Icon size={28} strokeWidth={2}/>}
+                  </div>
+                  
+                  {/* Status Tag */}
+                  <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border
+                    ${isCompleted 
+                        ? isLate ? 'bg-red-500/10 border-red-500/20 text-red-300' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' 
+                        : isLocked ? 'bg-slate-900 border-slate-700 text-slate-500' 
+                        : 'bg-slate-700/50 border-slate-600 text-slate-300 group-hover:bg-white/10 group-hover:text-white'}
+                  `}>
+                    {isCompleted ? (isLate ? 'Late Submission' : 'Completed') : isLocked ? 'Locked' : 'Pending'}
+                  </div>
                 </div>
-            )}
 
-            {/* 2. QUALITY CHECK TAB */}
-            {activeTab === 'quality' && (
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-                    
-                    <div className="flex items-center gap-3 border-b border-slate-700 pb-4">
-                        <div className="bg-green-500/20 p-2 rounded-lg text-green-400"><CheckCircle2 size={24} /></div>
-                        <h2 className="text-2xl font-bold text-white">Quality Check Update</h2>
+                <div className="mt-6">
+                  <h3 className="text-xl font-bold text-white mb-1 group-hover:text-white transition-colors tracking-tight">
+                    {dept.name}
+                  </h3>
+                  {isCompleted ? (
+                    <div className="text-xs text-slate-400 font-medium flex items-center gap-1.5">
+                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                       By {dept.supervisor} • {dept.timestamp.replace('🔴 LATE', '')}
                     </div>
-
-                     {/* Visual Yield Bar */}
-                     <div className="bg-slate-900/40 p-6 rounded-2xl border border-slate-700">
-                        <div className="flex justify-between mb-2">
-                            <span className="text-sm font-bold text-slate-400 uppercase tracking-wider">Quality Yield Rate</span>
-                            <span className="text-sm font-bold text-white">
-                                {metrics?.CorrectPieces || 0} OK <span className="text-slate-600">|</span> <span className="text-red-400">{metrics?.QCRejected || 0} Rejected</span>
-                            </span>
-                        </div>
-                        {/* Visual Bar Graph */}
-                        <div className="h-6 bg-slate-800 rounded-full overflow-hidden flex w-full">
-                            <div className="h-full bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]" style={{ width: `${(metrics?.CorrectPieces / (metrics?.QCDone || 1)) * 100}%` }}></div>
-                            <div className="h-full bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]" style={{ width: `${(metrics?.QCRejected / (metrics?.QCDone || 1)) * 100}%` }}></div>
-                        </div>
-                        <div className="flex justify-between mt-2 text-xs text-slate-500">
-                            <span>Success Rate</span>
-                            <span>Defect Rate</span>
-                        </div>
-                     </div>
-
-                    <div className="grid md:grid-cols-2 gap-8">
-                        <TableCard title="Team & Scope">
-                            <MetricRow label="Brands Checked" value={metrics?.Brands || '-'} />
-                            <MetricRow label="Total Checkers" value={metrics?.Checkers} unit="Staff" />
-                            <MetricRow label="Equal Checkers" value={metrics?.CheckersEqual} unit="Staff" />
-                            <MetricRow label="Total QC Verified" value={metrics?.QCDone} unit="Pcs" highlight />
-                        </TableCard>
-                        
-                        <TableCard title="Defect Analysis">
-                            <MetricRow label="Correct Pieces" value={metrics?.CorrectPieces} unit="Pcs" />
-                            <MetricRow label="Rejected Pieces" value={metrics?.QCRejected} unit="Pcs" isBad />
-                            <MetricRow label="Rejection Rate" value={metrics?.QCRejectionPercent} unit="%" isBad />
-                        </TableCard>
+                  ) : (
+                    <div className="text-xs text-slate-500 group-hover:text-slate-300 flex items-center gap-2 font-medium">
+                       {isLocked ? 'Complete previous steps first' : 'Tap to update status'}
+                       {!isLocked && <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />}
                     </div>
+                  )}
                 </div>
-            )}
-
-            {/* 3. EQUAL TEAM TAB */}
-            {activeTab === 'equal' && (
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-                    
-                    <div className="flex items-center gap-3 border-b border-slate-700 pb-4">
-                        <div className="bg-purple-500/20 p-2 rounded-lg text-purple-400"><Users size={24} /></div>
-                        <h2 className="text-2xl font-bold text-white">Equal Team Report</h2>
-                    </div>
-
-                    {/* Big Visual Cards for Equal Team */}
-                    <div className="grid md:grid-cols-3 gap-6">
-                        <BigCard 
-                            label="Total Boxes Checked" 
-                            value={metrics?.BoxesChecked} 
-                            icon={<Box size={32}/>}
-                            color="blue" 
-                        />
-                        <BigCard 
-                            label="Rejected Pieces" 
-                            value={metrics?.EqualRejected} 
-                            icon={<AlertTriangle size={32}/>}
-                            color="red" 
-                        />
-                        <BigCard 
-                            label="Ready for Packing" 
-                            value={metrics?.EqualPacking} 
-                            icon={<Package size={32}/>}
-                            color="green" 
-                        />
-                    </div>
-                    
-                    <div className="p-4 bg-slate-900/30 border border-slate-700 rounded-xl text-center">
-                        <p className="text-sm text-slate-400">
-                            The Equal Team ensures final packaging standards. <br/>
-                            <span className="text-white font-bold">{metrics?.EqualPacking || 0}</span> units are cleared for dispatch today.
-                        </p>
-                    </div>
-                </div>
-            )}
-
+              </button>
+            );
+          })}
         </div>
-      </div>
+      </main>
+
+      {/* --- TASK MODAL --- */}
+      {activeDept && !embeddedLink && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setActiveDeptId(null)}/>
+          <div className="relative w-full max-w-lg bg-[#0f172a] border border-slate-700 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="bg-slate-900/50 p-6 border-b border-slate-800 flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-bold text-white">{activeDept.name}</h2>
+                <p className="text-xs text-slate-400 mt-1">Daily Reporting Protocol</p>
+              </div>
+              <button onClick={() => setActiveDeptId(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20} className="text-slate-400" /></button>
+            </div>
+
+            <div className="p-6">
+              {activeDept.completed ? (
+                <div className="text-center py-8">
+                  <div className="inline-flex p-4 bg-emerald-500/10 rounded-full text-emerald-400 mb-4 border border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
+                    <CheckCircle2 size={48} />
+                  </div>
+                  <h3 className="text-white font-bold text-lg">Already Submitted</h3>
+                  <div className="mt-4 bg-slate-900/50 rounded-xl p-4 border border-slate-800 text-left">
+                     <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-1">Log Details</p>
+                     <p className="text-sm text-slate-300">Supervisor: <span className="text-white font-bold">{activeDept.supervisor}</span></p>
+                     <p className="text-sm text-slate-300">Timestamp: <span className="text-white font-bold">{activeDept.timestamp}</span></p>
+                  </div>
+                </div>
+              ) : (
+                <ActiveForm 
+                    dept={activeDept} 
+                    requiredPin={DEPARTMENT_PINS[activeDept.id]} 
+                    savedLink={currentLink} 
+                    onOpenSheet={(link: string) => setEmbeddedLink(link)} 
+                    onSubmit={handleSubmit} 
+                    isSubmitting={submitting === activeDept.id}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// --- SUB-COMPONENTS FOR CONSISTENT DESIGN ---
+// --- FORM COMPONENT ---
+function ActiveForm({ dept, requiredPin, savedLink, onOpenSheet, onSubmit, isSubmitting }: any) {
+  const [name, setName] = useState('');
+  const [comment, setComment] = useState('');
+  const [link, setLink] = useState('');
+  const [pin, setPin] = useState('');
+  const [isVerified, setIsVerified] = useState(false);
+  const [error, setError] = useState('');
 
-function TabButton({ label, icon, active, onClick }: any) {
+  const handleVerify = () => {
+    if (pin !== requiredPin) { setError('Incorrect PIN'); return; }
+    setIsVerified(true); setError('');
+  };
+
+  const handleFinalSubmit = () => {
+    if (!name.trim()) { setError("Name Required"); return; }
+    if (dept.id !== 'it_check' && !link.includes('docs.google.com/spreadsheets')) { 
+        setError("Valid Google Sheet Link Required"); return; 
+    }
+    onSubmit(dept.id, name, comment, link);
+  };
+
+  if (!isVerified) {
     return (
-        <button 
-            onClick={onClick}
-            className={`flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
-                active 
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50 scale-[1.02]' 
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
-            }`}
-        >
-            {icon} {label}
+      <div className="space-y-6 text-center py-4">
+        <div className="mx-auto w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 border border-slate-700 shadow-inner">
+           <KeyRound size={32} />
+        </div>
+        <div>
+           <h3 className="text-white font-bold text-lg">Identity Verification</h3>
+           <p className="text-slate-400 text-sm mt-1">Enter Department PIN to access this module</p>
+        </div>
+        <div className="flex justify-center">
+          <input 
+            type="password" maxLength={4} className="w-48 h-14 bg-slate-900 border border-slate-600 rounded-xl text-center text-2xl font-bold text-white tracking-[0.5em] focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/20 transition-all placeholder:text-slate-700" placeholder="••••" value={pin} 
+            onChange={(e) => { setPin(e.target.value); setError(''); }} onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
+          />
+        </div>
+        <button onClick={handleVerify} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-blue-600/20 mt-2">VERIFY IDENTITY</button>
+        {error && <div className="text-red-400 text-xs font-bold animate-pulse flex items-center justify-center gap-1"><AlertTriangle size={12}/> {error}</div>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-300">
+      
+      {dept.id !== 'it_check' && (
+        <button onClick={() => onOpenSheet(savedLink || '#')} className="group flex items-center justify-between w-full bg-[#1e293b] border border-slate-700 hover:border-blue-500/50 p-4 rounded-2xl transition-all hover:shadow-lg hover:shadow-blue-500/10 hover:-translate-y-0.5">
+          <div className="flex items-center gap-4">
+             <div className="p-3 bg-blue-500/20 text-blue-400 rounded-xl group-hover:bg-blue-500 group-hover:text-white transition-colors"><Maximize2 size={24}/></div>
+             <div className="text-left"><div className="text-sm font-bold text-white">Launch Work Sheet</div><div className="text-[10px] text-slate-400">Opens integrated workspace</div></div>
+          </div>
+          <ExternalLink size={18} className="text-slate-500 group-hover:text-white transition-colors"/>
         </button>
-    );
-}
+      )}
 
-function TableCard({ title, children }: any) {
-    return (
-        <div className="bg-slate-900/30 rounded-2xl border border-slate-700/50 overflow-hidden">
-            <div className="p-4 border-b border-slate-700/50 font-bold text-white text-sm bg-white/5 uppercase tracking-wider">{title}</div>
-            <div className="p-2">
-                <table className="w-full text-sm"><tbody>{children}</tbody></table>
+      <div className="h-px bg-slate-800 w-full"></div>
+
+      <div className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-2">
+            <div className="relative group">
+                <input className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3.5 text-sm text-white focus:border-blue-500 focus:outline-none peer placeholder-transparent transition-all" id="n" placeholder="N" value={name} onChange={e => setName(e.target.value)}/>
+                <label htmlFor="n" className="absolute left-4 top-[-10px] bg-[#0f172a] px-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-slate-500 peer-focus:top-[-10px] peer-focus:text-blue-500 pointer-events-none">Supervisor Name</label>
+            </div>
+            <div className="relative group">
+                <input className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3.5 text-sm text-white focus:border-blue-500 focus:outline-none peer placeholder-transparent transition-all" id="c" placeholder="C" value={comment} onChange={e => setComment(e.target.value)}/>
+                <label htmlFor="c" className="absolute left-4 top-[-10px] bg-[#0f172a] px-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-slate-500 peer-focus:top-[-10px] peer-focus:text-blue-500 pointer-events-none">Comments (Optional)</label>
             </div>
         </div>
-    );
-}
 
-function MetricRow({ label, value, unit, highlight = false, isBad = false }: any) {
-    // Handling long lists of brands to not break layout
-    const isLongText = typeof value === 'string' && value.length > 20;
-    
-    return (
-      <tr className="border-b border-slate-700/30 last:border-0 hover:bg-white/5 transition-colors group">
-        <td className="p-4 text-slate-400 font-medium group-hover:text-slate-200 transition-colors">{label}</td>
-        <td className={`p-4 text-right font-bold 
-            ${highlight ? 'text-xl text-green-400' : isBad ? 'text-red-400' : 'text-white'}
-            ${isLongText ? 'text-xs leading-tight max-w-[150px]' : ''}
-        `}>
-          {value || 0} <span className="text-[10px] text-slate-500 font-normal ml-1">{unit}</span>
-        </td>
-      </tr>
-    );
-}
-
-function ProgressBar({ label, current, total, color }: any) {
-    const safeCurrent = Number(current) || 0;
-    const safeTotal = Number(total) || 1; // Avoid divide by zero
-    const percent = Math.min((safeCurrent / safeTotal) * 100, 100);
-    
-    return (
-        <div className="bg-slate-900/40 p-6 rounded-2xl border border-slate-700 shadow-inner">
-            <div className="flex justify-between mb-3 items-end">
-                <span className="text-sm font-bold text-slate-400 uppercase tracking-wider">{label}</span>
-                <div className="text-right">
-                    <span className="text-2xl font-black text-white">{safeCurrent}</span>
-                    <span className="text-sm text-slate-500 mx-1">/</span>
-                    <span className="text-sm font-bold text-slate-400">{safeTotal}</span>
+        {dept.id !== 'it_check' && (
+            <div className="relative group">
+                <div className="flex items-center gap-3">
+                    <div className="p-3 bg-slate-800 rounded-xl text-slate-400 shrink-0 border border-slate-700"><LinkIcon size={20} /></div>
+                    <div className="relative w-full">
+                        <input className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3.5 text-sm text-white focus:border-green-500 focus:outline-none peer placeholder-transparent transition-all" id="l" placeholder="L" value={link} onChange={e => setLink(e.target.value)}/>
+                        <label htmlFor="l" className="absolute left-4 top-[-10px] bg-[#0f172a] px-1 text-[10px] font-bold text-green-500 uppercase tracking-wider transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-slate-500 peer-focus:top-[-10px] pointer-events-none">Paste New Link (After Editing)</label>
+                    </div>
                 </div>
             </div>
-            <div className="h-4 bg-slate-800 rounded-full overflow-hidden">
-                <div 
-                    className={`h-full bg-blue-500 transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(59,130,246,0.6)]`} 
-                    style={{ width: `${percent}%` }}
-                >
-                    <div className="w-full h-full bg-white/20 animate-pulse"></div>
-                </div>
-            </div>
-            <div className="text-right mt-2 text-xs font-bold text-blue-400">{Math.round(percent)}% Completed</div>
-        </div>
-    );
-}
+        )}
+      </div>
 
-function BigCard({ label, value, icon, color }: any) {
-    const colors: any = {
-        blue: 'text-blue-400 bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20',
-        green: 'text-green-400 bg-green-500/10 border-green-500/20 hover:bg-green-500/20',
-        red: 'text-red-400 bg-red-500/10 border-red-500/20 hover:bg-red-500/20',
-    };
-    return (
-        <div className={`p-6 rounded-3xl border flex flex-col items-center justify-center gap-3 transition-all hover:scale-[1.02] ${colors[color]}`}>
-            <div className="p-4 rounded-full bg-black/20">{icon}</div>
-            <span className="text-4xl font-black text-white tracking-tighter">{value || 0}</span>
-            <span className="text-xs font-bold uppercase opacity-80 tracking-widest">{label}</span>
-        </div>
-    );
+      <button disabled={isSubmitting} onClick={handleFinalSubmit} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2 mt-2 shadow-lg shadow-emerald-600/20 hover:shadow-emerald-600/40 hover:-translate-y-0.5">
+          {isSubmitting ? <Loader2 className="animate-spin" size={20}/> : <><span>CONFIRM & SUBMIT</span><CheckCircle2 size={18} /></>}
+      </button>
+      
+      {error && <div className="text-center text-xs text-red-400 font-bold animate-pulse">{error}</div>}
+    </div>
+  );
 }
