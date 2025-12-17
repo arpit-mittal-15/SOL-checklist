@@ -48,16 +48,12 @@ export async function updateStoredLink(deptId: string, newLink: string) {
   }
 }
 
-// --- 📊 DASHBOARD INTELLIGENCE ENGINE (UPDATED) ---
+// --- 📊 DASHBOARD INTELLIGENCE ENGINE ---
 export async function fetchDashboardMetrics() {
   const links = await getStoredLinks();
-  
-  // We scan ALL departments now to find data
   const targetDepts = ['floor', 'basement', 'quality']; 
   
-  // METRIC DEFINITIONS (The keywords we hunt for in the sheets)
   const metricMap: Record<string, string[]> = {
-    // Production Metrics
     'Brands': ['brand', 'sku name', 'product name'],
     'RFS': ['total rfs', 'rfs'],
     'Rollers': ['total rollers', 'rollers', 'roller count'],
@@ -69,16 +65,12 @@ export async function fetchDashboardMetrics() {
     'FilterReject': ['filter rejection', 'filter waste'],
     'Target': ['total target', 'production target'],
     'Production': ['total production', 'actual production'],
-    
-    // Quality Metrics
     'Checkers': ['total checkers', 'number of checkers'],
     'CheckersEqual': ['total checkers (equal)', 'equal checkers'],
     'QCDone': ['total qc done', 'qc completed'],
     'CorrectPieces': ['total correct pieces', 'good pieces', 'ok pieces'],
     'QCRejected': ['total rejected pieces', 'bad pieces', 'rejected pcs'],
     'QCRejectionPercent': ['total rejection percentage', 'rejection %'],
-
-    // Equal Team Metrics
     'BoxesChecked': ['total boxes checked', 'boxes checked'],
     'EqualRejected': ['total rejected pieces (equal)', 'equal rejection'],
     'EqualPacking': ['total equal for packing', 'ready for packing']
@@ -98,7 +90,6 @@ export async function fetchDashboardMetrics() {
 
     try {
       const sheets = await getAuthSheets();
-      // Read the whole sheet (A:Z) to scan for keywords
       const response = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: 'A:Z' });
       const rows = response.data.values || [];
 
@@ -109,20 +100,16 @@ export async function fetchDashboardMetrics() {
 
           for (const [metricKey, keywords] of Object.entries(metricMap)) {
             if (keywords.some(k => cellText.includes(k))) {
-              // Found a keyword! Look for value in next cell
               let value = row[cIndex + 1]; 
               if (!value && row[cIndex + 2]) value = row[cIndex + 2];
 
               if (value) {
                 const cleanValue = value.toString().replace(/[^0-9.]/g, '');
-                
                 if (metricKey === 'Brands') {
-                   // Concatenate brands without duplicates
                    if (!aggregatedData[metricKey].toString().includes(value)) {
                        aggregatedData[metricKey] += value + ", ";
                    }
                 } else {
-                   // Sum up numbers
                    aggregatedData[metricKey] = (Number(aggregatedData[metricKey]) || 0) + Number(cleanValue);
                 }
               }
@@ -132,7 +119,6 @@ export async function fetchDashboardMetrics() {
       });
     } catch (e) { console.error(`Failed to read sheet ${dept}`, e); }
   }
-  
   return aggregatedData;
 }
 
@@ -155,26 +141,9 @@ export async function updateDepartmentData(rowIndex: number, colIndex: number, d
   const endChar = getColumnLetter(colIndex + 3);
   await sheets.spreadsheets.values.update({ spreadsheetId: process.env.GOOGLE_SHEET_ID, range: `Sheet1!${startChar}${rowIndex}:${endChar}${rowIndex}`, valueInputOption: 'USER_ENTERED', requestBody: { values: [data] } });
 }
-export async function checkSheetForToday(sheetLink: string) {
-  const sheets = await getAuthSheets();
-  const matches = sheetLink.match(/\/d\/([a-zA-Z0-9-_]+)/);
-  if (!matches || !matches[1]) return false;
-  const externalSheetId = matches[1];
-  try {
-      const response = await sheets.spreadsheets.values.get({ spreadsheetId: externalSheetId, range: 'A:ZZ' });
-      const rows = response.data.values || [];
-      const now = new Date();
-      const options: any = { timeZone: 'Asia/Kolkata' };
-      const day = now.toLocaleString('en-IN', { day: 'numeric', ...options }); 
-      const monthNum = now.toLocaleString('en-IN', { month: 'numeric', ...options });
-      const year = now.toLocaleString('en-IN', { year: 'numeric', ...options });
-      const yearShort = year.slice(-2);
-      const monthShort = now.toLocaleString('en-IN', { month: 'short', ...options });
-      const searchTerms = [`${day}/${monthNum}/${year}`, `${day}-${monthNum}-${year}`, `${day}/${monthNum}/${yearShort}`, `${day}-${monthNum}-${yearShort}`, `${year}-${monthNum}-${day}`, `${day} ${monthShort}`, `${day}-${monthShort}`, `${Number(day)} ${monthShort}`, `${Number(day)}-${monthShort}`];
-      const allText = rows.flat().join(" ").toLowerCase(); 
-      return searchTerms.some(term => allText.includes(term.toLowerCase()));
-  } catch (error) { return false; }
-}
+
+// REMOVED: checkSheetForToday function
+
 function getColumnLetter(colIndex: number) {
   let letter = '';
   while (colIndex >= 0) {
