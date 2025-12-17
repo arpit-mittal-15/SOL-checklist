@@ -99,9 +99,34 @@ export default function Home() {
   const [ownerPin, setOwnerPin] = useState('');
   const [ownerError, setOwnerError] = useState('');
 
+  // --- 🔒 LOCKDOWN MODE: DISABLE BACK BUTTON & SWIPES ---
+  useEffect(() => {
+    if (embeddedLink) {
+      // 1. Disable Mac Swipe Gestures (Overscroll)
+      document.body.style.overscrollBehaviorX = 'none';
+
+      // 2. Trap the Back Button (History API)
+      // Push a dummy state so "Back" just stays on the dummy state
+      window.history.pushState(null, '', window.location.href);
+
+      const handlePopState = (event: PopStateEvent) => {
+        // If they try to go back, we force them to stay
+        window.history.pushState(null, '', window.location.href);
+        // Optional: You could show a toast message here like "Use Save & Close to exit"
+      };
+
+      window.addEventListener('popstate', handlePopState);
+
+      // Cleanup when closing sheet
+      return () => {
+        document.body.style.overscrollBehaviorX = 'auto'; // Re-enable normal scrolling
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }
+  }, [embeddedLink]);
+
   const fetchData = async () => {
     try {
-      // Intentional delay to show off the cool loader
       await new Promise(r => setTimeout(r, 1500));
       const res = await fetch('/api/checklist');
       if (!res.ok) throw new Error("Failed");
@@ -134,7 +159,6 @@ export default function Home() {
   };
 
   const handleSaveAndClose = () => {
-    // Show syncing loader
     setIsSyncing(true);
     setTimeout(() => { setIsSyncing(false); setEmbeddedLink(null); }, 1500);
   };
@@ -151,7 +175,6 @@ export default function Home() {
   const activeDept = data.find(d => d.id === activeDeptId);
   const currentLink = activeDept?.savedLink || DEFAULT_LINKS[activeDept?.id || ''] || '';
 
-  // 🔥 GLOBAL LOADER FOR PAGE LOAD
   if (loading) return <TechLoader />;
 
   return (
@@ -198,13 +221,13 @@ export default function Home() {
                         <p className="text-[10px] text-slate-400 uppercase tracking-wider flex items-center gap-1"><span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>Live Workspace</p>
                     </div>
                 </div>
+                {/* SAVE & CLOSE IS THE ONLY WAY OUT */}
                 <button onClick={handleSaveAndClose} disabled={isSyncing} className="flex items-center gap-3 bg-green-600 hover:bg-green-500 text-white px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-lg shadow-green-600/20">
                    {isSyncing ? <><Loader2 size={16} className="animate-spin" /><span>SYNCING...</span></> : <><Save size={16} /><span>SAVE & CLOSE</span></>}
                 </button>
             </div>
             
             <div className="flex-1 relative bg-[#0f172a]">
-                {/* 🔥 REPLACED SPINNER WITH TECH LOADER HERE TOO, BUT SMALLER OR FULL SCREEN IF SYNCING */}
                 {isSyncing ? (
                     <TechLoader /> 
                 ) : (
