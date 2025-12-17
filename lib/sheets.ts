@@ -122,6 +122,28 @@ export async function fetchDashboardMetrics() {
   return aggregatedData;
 }
 
+// --- 🏆 LEADERBOARD INTELLIGENCE (NEW) ---
+export async function getLeaderboardData() {
+  const sheets = await getAuthSheets();
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+  
+  try {
+    const response = await sheets.spreadsheets.values.get({ 
+        spreadsheetId, 
+        range: 'Sheet1!A:Z' 
+    });
+    
+    const rows = response.data.values || [];
+    // Remove header row so we only return data
+    const dataRows = rows.slice(1);
+    
+    return dataRows;
+  } catch (error) {
+    console.error("Leaderboard Data Fetch Error:", error);
+    return [];
+  }
+}
+
 // --- STANDARD EXPORTS ---
 export async function getTodayRow(dateStr: string) {
   const sheets = await getAuthSheets();
@@ -141,8 +163,6 @@ export async function updateDepartmentData(rowIndex: number, colIndex: number, d
   const endChar = getColumnLetter(colIndex + 3);
   await sheets.spreadsheets.values.update({ spreadsheetId: process.env.GOOGLE_SHEET_ID, range: `Sheet1!${startChar}${rowIndex}:${endChar}${rowIndex}`, valueInputOption: 'USER_ENTERED', requestBody: { values: [data] } });
 }
-
-// REMOVED: checkSheetForToday function
 
 function getColumnLetter(colIndex: number) {
   let letter = '';

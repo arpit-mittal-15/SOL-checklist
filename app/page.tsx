@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link'; // Added Link for navigation
 import { 
   Loader2, CheckCircle2, Lock, ArrowRight, Activity, ShieldCheck, 
   ExternalLink, ServerCog, KeyRound, X, LayoutGrid, AlertTriangle, 
   Link as LinkIcon, Maximize2, Save, Cloud, BarChart3,
-  Factory, Warehouse, ClipboardCheck, Package, Users, Wifi
+  Factory, Warehouse, ClipboardCheck, Package, Users, Wifi, Trophy // Added Trophy Icon
 } from 'lucide-react';
 
 // --- ⚙️ CONFIGURATION ---
@@ -33,7 +34,6 @@ const DEFAULT_LINKS: Record<string, string> = {
 };
 
 // --- 🎨 THEME CONFIGURATION ---
-// This ensures every card looks unique
 const DEPT_THEME: Record<string, any> = {
   'floor': { 
       icon: Factory, 
@@ -211,6 +211,11 @@ export default function Home() {
            
            <div className="hidden lg:block h-8 w-px bg-white/10"></div>
            
+           {/* LEADERBOARD BUTTON (NEW) */}
+           <Link href="/leaderboard" className="hidden lg:flex items-center gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 px-4 py-2 rounded-lg text-xs font-bold border border-yellow-500/20 transition-all hover:scale-105">
+             <Trophy size={14} /> TOP PERFORMERS
+           </Link>
+
            <button onClick={() => setShowOwnerLogin(true)} className="hidden lg:flex items-center gap-2 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white px-4 py-2 rounded-lg text-xs font-bold border border-white/5 transition-all">
              <BarChart3 size={14} /> DASHBOARD
            </button>
