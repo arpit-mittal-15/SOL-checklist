@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image'; // ADDED THIS IMPORT
 import { Loader2, ArrowLeft, BarChart3, Database, CheckCircle2, Package, Users, Activity, Box, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
@@ -27,7 +28,9 @@ export default function Dashboard() {
   if (loading) return (
     <div className="flex h-screen w-full items-center justify-center bg-[#000510] text-white">
       <div className="flex flex-col items-center gap-6 animate-pulse">
-        <div className="h-16 w-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <div className="relative w-20 h-20">
+             <Image src="/logo.webp" alt="Loading" fill className="object-contain" />
+        </div>
         <span className="text-sm font-bold tracking-widest text-blue-400">ANALYZING LIVE DATA...</span>
       </div>
     </div>
@@ -47,12 +50,17 @@ export default function Dashboard() {
         
         {/* --- HEADER --- */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
-              <BarChart3 className="text-blue-500" size={32} />
-              Owner's Console
-            </h1>
-            <p className="text-slate-400 mt-1 text-sm font-medium">Real-time Manufacturing Intelligence</p>
+          <div className="flex items-center gap-4">
+            {/* LOGO ADDED HERE */}
+            <div className="relative h-12 w-12 bg-white/5 rounded-xl p-2 border border-white/10">
+                 <Image src="/logo.webp" alt="Sol France" fill className="object-contain" />
+            </div>
+            <div>
+                <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
+                Owner's Console
+                </h1>
+                <p className="text-slate-400 mt-1 text-sm font-medium">Real-time Manufacturing Intelligence</p>
+            </div>
           </div>
           <Link href="/" className="self-start md:self-auto flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white transition-colors bg-white/5 hover:bg-white/10 px-4 py-2 rounded-lg border border-white/10">
             <ArrowLeft size={16} /> EXIT
@@ -216,7 +224,7 @@ export default function Dashboard() {
   );
 }
 
-// --- SUB-COMPONENTS FOR CONSISTENT DESIGN ---
+// --- SUB-COMPONENTS ---
 
 function TabButton({ label, icon, active, onClick }: any) {
     return (
