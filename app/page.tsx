@@ -5,11 +5,12 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
-  Loader2, CheckCircle2, Lock, ArrowRight, Activity, ShieldCheck, 
+  CheckCircle2, Lock, ArrowRight, Activity, ShieldCheck, 
   ExternalLink, ServerCog, KeyRound, X, LayoutGrid, AlertTriangle, 
   Link as LinkIcon, Maximize2, Save, Cloud, BarChart3,
-  Factory, Warehouse, ClipboardCheck, Package, Users, Wifi, Trophy
+  Factory, Warehouse, ClipboardCheck, Package, Users, Wifi, Trophy, Loader2
 } from 'lucide-react';
+import TechLoader from '@/components/TechLoader'; // Import the new loader
 
 // --- ⚙️ CONFIGURATION ---
 const OWNER_PHONE = "917457001218"; 
@@ -25,13 +26,13 @@ const DEPARTMENT_PINS: Record<string, string> = {
 };
 
 const DEFAULT_LINKS: Record<string, string> = {
-  'floor': 'https://docs.google.com/spreadsheets/d/1SHR6Oanaz-h-iYZBRSwlqci4PHuVRxpLG92MEcGSB9E/edit?gid=787103720#gid=787103720',
-  'basement': 'https://docs.google.com/spreadsheets/d/1SHR6Oanaz-h-iYZBRSwlqci4PHuVRxpLG92MEcGSB9E/edit?gid=1251109391#gid=1251109391',
-  'quality': 'https://docs.google.com/spreadsheets/d/1Vf86RYqPH82qrEq1z2QPA99AkVIndP8J/edit?gid=2024287451#gid=2024287451',
-  'stock': 'https://docs.google.com/spreadsheets/d/12siBNbDOtmyAqIRH5cgc9APtw3rIEqBeZTzBRgiBrsg/edit?gid=580761467#gid=580761467',
-  'attendance': 'https://docs.google.com/spreadsheets/d/1SHR6Oanaz-h-iYZBRSwlqci4PHuVRxpLG92MEcGSB9E/edit?gid=1751300469#gid=1751300469',
-  'it_check': '#' 
-};
+      'floor': 'https://docs.google.com/spreadsheets/d/1SHR6Oanaz-h-iYZBRSwlqci4PHuVRxpLG92MEcGSB9E/edit?gid=787103720#gid=787103720',
+      'basement': 'https://docs.google.com/spreadsheets/d/1SHR6Oanaz-h-iYZBRSwlqci4PHuVRxpLG92MEcGSB9E/edit?gid=1251109391#gid=1251109391',
+      'quality': 'https://docs.google.com/spreadsheets/d/1Vf86RYqPH82qrEq1z2QPA99AkVIndP8J/edit?gid=2024287451#gid=2024287451',
+      'stock': 'https://docs.google.com/spreadsheets/d/12siBNbDOtmyAqIRH5cgc9APtw3rIEqBeZTzBRgiBrsg/edit?gid=580761467#gid=580761467',
+      'attendance': 'https://docs.google.com/spreadsheets/d/1SHR6Oanaz-h-iYZBRSwlqci4PHuVRxpLG92MEcGSB9E/edit?gid=1751300469#gid=1751300469',
+      'it_check': '#' 
+    };
 
 // --- 🎨 THEME CONFIGURATION ---
 const DEPT_THEME: Record<string, any> = {
@@ -99,6 +100,8 @@ export default function Home() {
 
   const fetchData = async () => {
     try {
+      // Simulate a slightly longer load for the cool effect if desired
+      await new Promise(r => setTimeout(r, 2000));
       const res = await fetch('/api/checklist');
       if (!res.ok) throw new Error("Failed");
       const json = await res.json();
@@ -146,7 +149,8 @@ export default function Home() {
   const activeDept = data.find(d => d.id === activeDeptId);
   const currentLink = activeDept?.savedLink || DEFAULT_LINKS[activeDept?.id || ''] || '';
 
-  if (loading) return (<div className="flex h-screen w-full items-center justify-center bg-[#000510] text-white"><Loader2 className="animate-spin text-blue-500" size={48}/></div>);
+  // --- 🔥 NEW LOADING SCREEN ---
+  if (loading) return <TechLoader />;
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-100 font-sans overflow-hidden relative selection:bg-blue-500 selection:text-white flex flex-col">
@@ -179,12 +183,17 @@ export default function Home() {
         </div>
       )}
 
-      {/* --- EMBEDDED WORKSPACE --- */}
+      {/* --- EMBEDDED WORKSPACE (SHEET VIEW) --- */}
       {embeddedLink && (
          <div className="fixed inset-0 z-[60] flex flex-col animate-in slide-in-from-bottom-10 duration-500 bg-[#0f172a]">
+            {/* Top Bar with Logo */}
             <div className="h-16 bg-[#0f172a]/95 backdrop-blur-xl border-b border-white/10 flex items-center justify-between px-6 shadow-2xl z-50">
                 <div className="flex items-center gap-4">
-                    <div className="bg-blue-600/20 text-blue-400 p-2.5 rounded-xl border border-blue-500/30"><LayoutGrid size={20}/></div>
+                    {/* LOGO ADDED HERE */}
+                    <div className="relative h-8 w-8 md:h-10 md:w-10">
+                        <Image src="/logo.webp" alt="Sol France" fill className="object-contain" />
+                    </div>
+                    <div className="w-px h-8 bg-white/10 mx-2"></div>
                     <div>
                         <h3 className="text-base font-bold text-white leading-tight">{activeDept?.name}</h3>
                         <p className="text-[10px] text-slate-400 uppercase tracking-wider flex items-center gap-1"><span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>Live Workspace</p>
@@ -194,14 +203,21 @@ export default function Home() {
                    {isSyncing ? <><Loader2 size={16} className="animate-spin" /><span>SYNCING...</span></> : <><Save size={16} /><span>SAVE & CLOSE</span></>}
                 </button>
             </div>
+            
+            {/* The Sheet */}
             <div className="flex-1 relative bg-[#0f172a]">
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"><Loader2 size={40} className="text-blue-500 animate-spin opacity-50"/></div>
                 <iframe src={embeddedLink} className={`relative z-10 w-full h-full border-0 transition-opacity duration-700 ${isSyncing ? 'opacity-50 scale-[0.99] blur-sm' : 'opacity-100'}`} allow="clipboard-write"/>
             </div>
+
+            {/* COPYRIGHT FOOTER ADDED HERE */}
+            <div className="bg-[#0f172a] py-2 text-center text-[9px] text-slate-600 font-medium uppercase tracking-widest border-t border-white/5 z-50">
+                © 2025 Sol France. All rights reserved.
+            </div>
          </div>
       )}
 
-      {/* --- HEADER --- */}
+      {/* --- MAIN HEADER --- */}
       <header className="relative z-10 w-full px-6 md:px-10 py-6 flex items-center justify-between">
         <div className="flex items-center gap-6">
            {/* LOGO AREA */}
@@ -328,7 +344,7 @@ export default function Home() {
       </main>
 
       {/* --- FOOTER --- */}
-      <footer className="relative z-10 py-6 text-center text-[10px] text-slate-600 font-medium uppercase tracking-widest">
+      <footer className="relative z-10 py-6 text-center text-[10px] text-slate-600 font-medium uppercase tracking-widest mt-auto">
          © 2025 Sol France. All rights reserved.
       </footer>
 
