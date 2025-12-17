@@ -7,7 +7,7 @@ import {
   Loader2, CheckCircle2, Lock, ArrowRight, Activity, ShieldCheck, 
   ExternalLink, ServerCog, KeyRound, X, LayoutGrid, AlertTriangle, 
   Link as LinkIcon, Maximize2, Save, Cloud, BarChart3,
-  Factory, Warehouse, ClipboardCheck, Boxes, Users, Wifi
+  Factory, Warehouse, ClipboardCheck, Package, Users, Wifi
 } from 'lucide-react';
 
 // --- ⚙️ CONFIGURATION ---
@@ -32,14 +32,57 @@ const DEFAULT_LINKS: Record<string, string> = {
   'it_check': '#' 
 };
 
-// --- 🎨 UI CONFIGURATION (Icons & Colors) ---
-const DEPT_CONFIG: Record<string, any> = {
-  'floor': { icon: Factory, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'group-hover:border-amber-500/50' },
-  'basement': { icon: Warehouse, color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'group-hover:border-indigo-500/50' },
-  'quality': { icon: ClipboardCheck, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'group-hover:border-emerald-500/50' },
-  'stock': { icon: Boxes, color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'group-hover:border-cyan-500/50' },
-  'attendance': { icon: Users, color: 'text-pink-400', bg: 'bg-pink-500/10', border: 'group-hover:border-pink-500/50' },
-  'it_check': { icon: Wifi, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'group-hover:border-blue-500/50' },
+// --- 🎨 THEME CONFIGURATION ---
+// This ensures every card looks unique
+const DEPT_THEME: Record<string, any> = {
+  'floor': { 
+      icon: Factory, 
+      color: 'text-amber-400', 
+      bg: 'bg-amber-500/10', 
+      border: 'hover:border-amber-500/50',
+      glow: 'hover:shadow-[0_0_30px_rgba(245,158,11,0.2)]',
+      gradient: 'from-amber-500/20 to-transparent'
+  },
+  'basement': { 
+      icon: Warehouse, 
+      color: 'text-indigo-400', 
+      bg: 'bg-indigo-500/10', 
+      border: 'hover:border-indigo-500/50',
+      glow: 'hover:shadow-[0_0_30px_rgba(99,102,241,0.2)]',
+      gradient: 'from-indigo-500/20 to-transparent'
+  },
+  'quality': { 
+      icon: ClipboardCheck, 
+      color: 'text-emerald-400', 
+      bg: 'bg-emerald-500/10', 
+      border: 'hover:border-emerald-500/50',
+      glow: 'hover:shadow-[0_0_30px_rgba(16,185,129,0.2)]',
+      gradient: 'from-emerald-500/20 to-transparent'
+  },
+  'stock': { 
+      icon: Package, 
+      color: 'text-cyan-400', 
+      bg: 'bg-cyan-500/10', 
+      border: 'hover:border-cyan-500/50',
+      glow: 'hover:shadow-[0_0_30px_rgba(6,182,212,0.2)]',
+      gradient: 'from-cyan-500/20 to-transparent'
+  },
+  'attendance': { 
+      icon: Users, 
+      color: 'text-rose-400', 
+      bg: 'bg-rose-500/10', 
+      border: 'hover:border-rose-500/50',
+      glow: 'hover:shadow-[0_0_30px_rgba(244,63,94,0.2)]',
+      gradient: 'from-rose-500/20 to-transparent'
+  },
+  'it_check': { 
+      icon: Wifi, 
+      color: 'text-blue-400', 
+      bg: 'bg-blue-500/10', 
+      border: 'hover:border-blue-500/50',
+      glow: 'hover:shadow-[0_0_30px_rgba(59,130,246,0.2)]',
+      gradient: 'from-blue-500/20 to-transparent'
+  },
 };
 
 export default function Home() {
@@ -92,7 +135,6 @@ export default function Home() {
   };
 
   const generateWhatsAppReport = (itName: string) => {
-      // (WhatsApp logic remains same)
       window.location.href = `https://wa.me/${OWNER_PHONE}`;
   };
 
@@ -109,11 +151,11 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-100 font-sans overflow-hidden relative selection:bg-blue-500 selection:text-white">
       
-      {/* Background Ambience */}
+      {/* Dynamic Background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute inset-0 bg-[#0f172a]" />
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-600/10 rounded-full blur-[120px]" />
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 rounded-full blur-[120px] animate-[pulse_8s_infinite]" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-600/10 rounded-full blur-[120px] animate-[pulse_10s_infinite_reverse]" />
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 mix-blend-overlay"></div>
       </div>
 
@@ -162,10 +204,13 @@ export default function Home() {
       {/* --- HEADER --- */}
       <header className="relative z-10 w-full px-6 md:px-10 py-6 flex items-center justify-between">
         <div className="flex items-center gap-6">
-           <div className="relative h-10 w-32 md:h-12 md:w-40 hover:opacity-80 transition-opacity">
+           {/* LOGO AREA */}
+           <div className="relative h-10 w-32 md:h-12 md:w-40 hover:opacity-80 transition-opacity cursor-pointer">
              <Image src="/logo.webp" alt="Logo" fill className="object-contain object-left" priority />
            </div>
+           
            <div className="hidden lg:block h-8 w-px bg-white/10"></div>
+           
            <button onClick={() => setShowOwnerLogin(true)} className="hidden lg:flex items-center gap-2 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white px-4 py-2 rounded-lg text-xs font-bold border border-white/5 transition-all">
              <BarChart3 size={14} /> DASHBOARD
            </button>
@@ -176,7 +221,6 @@ export default function Home() {
             <div className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Current Date</div>
             <div className="text-lg font-bold text-white tracking-tight">{dateStr}</div>
           </div>
-          {/* Circular Progress */}
           <div className="relative h-14 w-14 flex items-center justify-center">
             <svg className="h-full w-full -rotate-90 transform" viewBox="0 0 36 36">
               <path className="text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
@@ -190,6 +234,14 @@ export default function Home() {
       {/* --- MAIN GRID --- */}
       <main className="relative z-10 container mx-auto px-6 py-6 h-[calc(100vh-100px)] flex flex-col justify-center">
         
+        {/* Warning Banner */}
+        <div className="mb-8 bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 flex items-center justify-center gap-3 text-amber-200 backdrop-blur-sm max-w-4xl mx-auto w-full">
+            <div className="p-2 bg-amber-500/10 rounded-full"><AlertTriangle size={16} className="animate-pulse" /></div>
+            <span className="text-xs md:text-sm font-medium tracking-wide">
+                <strong className="text-amber-400">7:30 PM DEADLINE:</strong> Late submissions are automatically flagged in the Owner's Console.
+            </span>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl mx-auto">
           {data.map((dept) => {
             const isIT = dept.id === 'it_check';
@@ -197,8 +249,8 @@ export default function Home() {
             const isCompleted = dept.completed;
             const isLate = dept.timestamp.includes('LATE');
             
-            // Get Theme from Config
-            const theme = DEPT_CONFIG[dept.id] || { icon: Activity, color: 'text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-700' };
+            // 🎨 GET THEME
+            const theme = DEPT_THEME[dept.id] || { icon: Activity, color: 'text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-700' };
             const Icon = theme.icon;
 
             return (
@@ -207,54 +259,59 @@ export default function Home() {
                 disabled={isLocked}
                 onClick={() => !isLocked && setActiveDeptId(dept.id)}
                 className={`
-                  group relative w-full min-h-[180px] rounded-3xl p-6 text-left transition-all duration-300 border backdrop-blur-md flex flex-col justify-between overflow-hidden
+                  group relative w-full min-h-[180px] rounded-[2rem] p-6 text-left transition-all duration-500 border backdrop-blur-xl flex flex-col justify-between overflow-hidden
                   ${isCompleted 
                     ? isLate 
-                        ? 'bg-red-900/10 border-red-500/30 hover:border-red-500/50' 
-                        : 'bg-emerald-900/10 border-emerald-500/30 hover:border-emerald-500/50'
+                        ? 'bg-red-900/10 border-red-500/30 hover:bg-red-900/20' 
+                        : 'bg-emerald-900/10 border-emerald-500/30 hover:bg-emerald-900/20'
                     : isLocked 
                       ? 'bg-slate-900/40 border-slate-800 opacity-50 grayscale cursor-not-allowed' 
-                      : `bg-slate-800/40 border-slate-700 hover:bg-slate-800/60 ${theme.border} hover:shadow-2xl hover:-translate-y-1`
+                      : `bg-[#1e293b]/40 border-slate-700/50 hover:bg-[#1e293b]/60 ${theme.border} hover:-translate-y-1 hover:shadow-2xl`
                   }
                 `}
               >
-                <div className="flex justify-between items-start w-full">
+                {/* Internal Glow Gradient */}
+                {!isLocked && !isCompleted && (
+                    <div className={`absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br ${theme.gradient} blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity duration-700`}></div>
+                )}
+
+                <div className="flex justify-between items-start w-full relative z-10">
                   {/* Icon Container */}
                   <div className={`
-                    p-3.5 rounded-2xl transition-all duration-300 shadow-inner
+                    p-3.5 rounded-2xl transition-all duration-500 shadow-inner
                     ${isCompleted 
                         ? 'bg-emerald-500/20 text-emerald-400' 
                         : isLocked 
                             ? 'bg-slate-800 text-slate-500' 
-                            : `${theme.bg} ${theme.color} group-hover:scale-110`
+                            : `${theme.bg} ${theme.color} group-hover:scale-110 group-hover:shadow-lg`
                     }
                   `}>
-                    {isCompleted ? <CheckCircle2 size={28} strokeWidth={2.5}/> : isLocked ? <Lock size={28} /> : <Icon size={28} strokeWidth={2}/>}
+                    {isCompleted ? <CheckCircle2 size={28} strokeWidth={2.5}/> : isLocked ? <Lock size={28} /> : <Icon size={28} strokeWidth={1.5}/>}
                   </div>
                   
                   {/* Status Tag */}
-                  <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border
+                  <div className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border flex items-center gap-1.5
                     ${isCompleted 
                         ? isLate ? 'bg-red-500/10 border-red-500/20 text-red-300' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' 
                         : isLocked ? 'bg-slate-900 border-slate-700 text-slate-500' 
-                        : 'bg-slate-700/50 border-slate-600 text-slate-300 group-hover:bg-white/10 group-hover:text-white'}
+                        : 'bg-slate-700/30 border-slate-600 text-slate-400 group-hover:bg-white/5 group-hover:text-white group-hover:border-white/20'}
                   `}>
-                    {isCompleted ? (isLate ? 'Late Submission' : 'Completed') : isLocked ? 'Locked' : 'Pending'}
+                    <span className={`w-1.5 h-1.5 rounded-full ${isCompleted ? (isLate ? 'bg-red-500' : 'bg-emerald-500') : isLocked ? 'bg-slate-600' : 'bg-blue-500 animate-pulse'}`}></span>
+                    {isCompleted ? (isLate ? 'Late' : 'Done') : isLocked ? 'Locked' : 'Active'}
                   </div>
                 </div>
 
-                <div className="mt-6">
+                <div className="mt-8 relative z-10">
                   <h3 className="text-xl font-bold text-white mb-1 group-hover:text-white transition-colors tracking-tight">
                     {dept.name}
                   </h3>
                   {isCompleted ? (
-                    <div className="text-xs text-slate-400 font-medium flex items-center gap-1.5">
-                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    <div className="text-xs text-slate-400 font-medium flex items-center gap-1.5 mt-2">
                        By {dept.supervisor} • {dept.timestamp.replace('🔴 LATE', '')}
                     </div>
                   ) : (
-                    <div className="text-xs text-slate-500 group-hover:text-slate-300 flex items-center gap-2 font-medium">
-                       {isLocked ? 'Complete previous steps first' : 'Tap to update status'}
+                    <div className="text-xs text-slate-500 group-hover:text-slate-300 flex items-center gap-2 font-medium mt-2">
+                       {isLocked ? 'Waiting for previous steps...' : 'Tap to open workspace'}
                        {!isLocked && <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />}
                     </div>
                   )}
@@ -268,27 +325,32 @@ export default function Home() {
       {/* --- TASK MODAL --- */}
       {activeDept && !embeddedLink && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setActiveDeptId(null)}/>
-          <div className="relative w-full max-w-lg bg-[#0f172a] border border-slate-700 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="bg-slate-900/50 p-6 border-b border-slate-800 flex justify-between items-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-xl animate-in fade-in duration-300" onClick={() => setActiveDeptId(null)}/>
+          <div className="relative w-full max-w-lg bg-[#0f172a] border border-slate-700 rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            
+            {/* Modal Header */}
+            <div className="bg-[#1e293b]/80 p-6 border-b border-slate-700/50 flex justify-between items-center backdrop-blur-md">
               <div>
                 <h2 className="text-xl font-bold text-white">{activeDept.name}</h2>
-                <p className="text-xs text-slate-400 mt-1">Daily Reporting Protocol</p>
+                <p className="text-xs text-slate-400 mt-1 flex items-center gap-1"><ShieldCheck size={12}/> Secure Protocol</p>
               </div>
               <button onClick={() => setActiveDeptId(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20} className="text-slate-400" /></button>
             </div>
 
-            <div className="p-6">
+            <div className="p-8">
               {activeDept.completed ? (
                 <div className="text-center py-8">
-                  <div className="inline-flex p-4 bg-emerald-500/10 rounded-full text-emerald-400 mb-4 border border-emerald-500/20 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
-                    <CheckCircle2 size={48} />
+                  <div className="inline-flex p-5 bg-emerald-500/10 rounded-full text-emerald-400 mb-6 border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.15)]">
+                    <CheckCircle2 size={56} strokeWidth={1.5} />
                   </div>
-                  <h3 className="text-white font-bold text-lg">Already Submitted</h3>
-                  <div className="mt-4 bg-slate-900/50 rounded-xl p-4 border border-slate-800 text-left">
-                     <p className="text-xs text-slate-500 uppercase tracking-widest font-bold mb-1">Log Details</p>
-                     <p className="text-sm text-slate-300">Supervisor: <span className="text-white font-bold">{activeDept.supervisor}</span></p>
-                     <p className="text-sm text-slate-300">Timestamp: <span className="text-white font-bold">{activeDept.timestamp}</span></p>
+                  <h3 className="text-white font-bold text-xl">Submission Received</h3>
+                  <div className="mt-6 bg-slate-900/50 rounded-2xl p-5 border border-slate-800 text-left space-y-2">
+                     <div className="flex justify-between items-center border-b border-slate-800 pb-2 mb-2">
+                        <span className="text-xs text-slate-500 uppercase tracking-widest font-bold">Log Details</span>
+                        <div className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">VERIFIED</div>
+                     </div>
+                     <p className="text-sm text-slate-400 flex justify-between">Supervisor: <span className="text-white font-bold">{activeDept.supervisor}</span></p>
+                     <p className="text-sm text-slate-400 flex justify-between">Time: <span className="text-white font-bold">{activeDept.timestamp}</span></p>
                   </div>
                 </div>
               ) : (
@@ -333,21 +395,21 @@ function ActiveForm({ dept, requiredPin, savedLink, onOpenSheet, onSubmit, isSub
 
   if (!isVerified) {
     return (
-      <div className="space-y-6 text-center py-4">
-        <div className="mx-auto w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 border border-slate-700 shadow-inner">
-           <KeyRound size={32} />
+      <div className="space-y-8 text-center py-4">
+        <div className="mx-auto w-20 h-20 bg-slate-800/50 rounded-[2rem] flex items-center justify-center text-slate-400 border border-slate-700 shadow-inner">
+           <KeyRound size={36} strokeWidth={1.5} />
         </div>
         <div>
-           <h3 className="text-white font-bold text-lg">Identity Verification</h3>
-           <p className="text-slate-400 text-sm mt-1">Enter Department PIN to access this module</p>
+           <h3 className="text-white font-bold text-xl">Identity Verification</h3>
+           <p className="text-slate-400 text-sm mt-2">Enter your 4-digit Department PIN</p>
         </div>
         <div className="flex justify-center">
           <input 
-            type="password" maxLength={4} className="w-48 h-14 bg-slate-900 border border-slate-600 rounded-xl text-center text-2xl font-bold text-white tracking-[0.5em] focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/20 transition-all placeholder:text-slate-700" placeholder="••••" value={pin} 
+            type="password" maxLength={4} className="w-56 h-16 bg-slate-900 border border-slate-600 rounded-2xl text-center text-3xl font-bold text-white tracking-[0.5em] focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/20 transition-all placeholder:text-slate-800" placeholder="••••" value={pin} 
             onChange={(e) => { setPin(e.target.value); setError(''); }} onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
           />
         </div>
-        <button onClick={handleVerify} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-blue-600/20 mt-2">VERIFY IDENTITY</button>
+        <button onClick={handleVerify} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-blue-600/20 hover:shadow-blue-600/40 hover:-translate-y-0.5">VERIFY & PROCEED</button>
         {error && <div className="text-red-400 text-xs font-bold animate-pulse flex items-center justify-center gap-1"><AlertTriangle size={12}/> {error}</div>}
       </div>
     );
