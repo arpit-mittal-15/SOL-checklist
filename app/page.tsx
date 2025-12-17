@@ -105,18 +105,14 @@ export default function Home() {
       document.body.style.overscrollBehaviorX = 'none';
 
       // 2. Trap the Back Button (History API)
-      // Push a dummy state so "Back" just stays on the dummy state
       window.history.pushState(null, '', window.location.href);
-
-      const handlePopState = (event: PopStateEvent) => {
-        // If they try to go back, we force them to stay
+      const handlePopState = () => {
+        // If they try to go back, force them to stay
         window.history.pushState(null, '', window.location.href);
-        // Optional: You could show a toast message here like "Use Save & Close to exit"
       };
 
       window.addEventListener('popstate', handlePopState);
 
-      // Cleanup when closing sheet
       return () => {
         document.body.style.overscrollBehaviorX = 'auto'; // Re-enable normal scrolling
         window.removeEventListener('popstate', handlePopState);
@@ -126,6 +122,7 @@ export default function Home() {
 
   const fetchData = async () => {
     try {
+      // Artificial delay to show off the cool 3D loader
       await new Promise(r => setTimeout(r, 1500));
       const res = await fetch('/api/checklist');
       if (!res.ok) throw new Error("Failed");
@@ -174,11 +171,13 @@ export default function Home() {
   const activeDept = data.find(d => d.id === activeDeptId);
   const currentLink = activeDept?.savedLink || DEFAULT_LINKS[activeDept?.id || ''] || '';
 
+  // 🔥 3D CONE LOADER
   if (loading) return <TechLoader />;
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-100 font-sans overflow-hidden relative selection:bg-blue-500 selection:text-white flex flex-col">
       
+      {/* Dynamic Background */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute inset-0 bg-[#0f172a]" />
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 rounded-full blur-[120px] animate-[pulse_8s_infinite]" />
@@ -186,6 +185,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 mix-blend-overlay"></div>
       </div>
 
+      {/* --- OWNER LOGIN MODAL --- */}
       {showOwnerLogin && (
         <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
            <div className="bg-[#1e293b] border border-slate-700 p-8 rounded-3xl w-full max-w-sm text-center relative shadow-2xl">
@@ -230,7 +230,12 @@ export default function Home() {
                 {isSyncing ? (
                     <TechLoader /> 
                 ) : (
-                   <iframe src={embeddedLink} className={`relative z-10 w-full h-full border-0 transition-opacity duration-700 opacity-100`} allow="clipboard-write"/>
+                   <iframe 
+                     src={embeddedLink} 
+                     className={`relative z-10 w-full h-full border-0 transition-opacity duration-700 opacity-100`} 
+                     allow="clipboard-write; clipboard-read; popups; presentations" 
+                     sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation allow-downloads allow-modals"
+                   />
                 )}
             </div>
 
@@ -240,15 +245,19 @@ export default function Home() {
          </div>
       )}
 
+      {/* --- MAIN HEADER --- */}
       <header className="relative z-10 w-full px-6 md:px-10 py-6 flex items-center justify-between">
         <div className="flex items-center gap-6">
            <div className="relative h-10 w-32 md:h-12 md:w-40 hover:opacity-80 transition-opacity cursor-pointer">
              <Image src="/logo.webp" alt="Logo" fill className="object-contain object-left" priority />
            </div>
+           
            <div className="hidden lg:block h-8 w-px bg-white/10"></div>
+           
            <Link href="/leaderboard" className="hidden lg:flex items-center gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 px-4 py-2 rounded-lg text-xs font-bold border border-yellow-500/20 transition-all hover:scale-105">
              <Trophy size={14} /> TOP PERFORMERS
            </Link>
+
            <button onClick={() => setShowOwnerLogin(true)} className="hidden lg:flex items-center gap-2 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white px-4 py-2 rounded-lg text-xs font-bold border border-white/5 transition-all">
              <BarChart3 size={14} /> DASHBOARD
            </button>
@@ -269,7 +278,10 @@ export default function Home() {
         </div>
       </header>
 
+      {/* --- MAIN GRID --- */}
       <main className="relative z-10 container mx-auto px-6 py-6 flex-1 flex flex-col justify-center">
+        
+        {/* Warning Banner */}
         <div className="mb-8 bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 flex items-center justify-center gap-3 text-amber-200 backdrop-blur-sm max-w-4xl mx-auto w-full">
             <div className="p-2 bg-amber-500/10 rounded-full"><AlertTriangle size={16} className="animate-pulse" /></div>
             <span className="text-xs md:text-sm font-medium tracking-wide">
@@ -306,6 +318,7 @@ export default function Home() {
                 {!isLocked && !isCompleted && (
                     <div className={`absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br ${theme.gradient} blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity duration-700`}></div>
                 )}
+
                 <div className="flex justify-between items-start w-full relative z-10">
                   <div className={`
                     p-3.5 rounded-2xl transition-all duration-500 shadow-inner
@@ -318,6 +331,7 @@ export default function Home() {
                   `}>
                     {isCompleted ? <CheckCircle2 size={28} strokeWidth={2.5}/> : isLocked ? <Lock size={28} /> : <Icon size={28} strokeWidth={1.5}/>}
                   </div>
+                  
                   <div className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border flex items-center gap-1.5
                     ${isCompleted 
                         ? isLate ? 'bg-red-500/10 border-red-500/20 text-red-300' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' 
@@ -328,6 +342,7 @@ export default function Home() {
                     {isCompleted ? (isLate ? 'Late' : 'Done') : isLocked ? 'Locked' : 'Active'}
                   </div>
                 </div>
+
                 <div className="mt-8 relative z-10">
                   <h3 className="text-xl font-bold text-white mb-1 group-hover:text-white transition-colors tracking-tight">
                     {dept.name}
@@ -349,14 +364,18 @@ export default function Home() {
         </div>
       </main>
 
+      {/* --- FOOTER --- */}
       <footer className="relative z-10 py-6 text-center text-[10px] text-slate-600 font-medium uppercase tracking-widest mt-auto">
          © 2025 Sol France. All rights reserved.
       </footer>
 
+      {/* --- TASK MODAL --- */}
       {activeDept && !embeddedLink && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-xl animate-in fade-in duration-300" onClick={() => setActiveDeptId(null)}/>
           <div className="relative w-full max-w-lg bg-[#0f172a] border border-slate-700 rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            
+            {/* Modal Header */}
             <div className="bg-[#1e293b]/80 p-6 border-b border-slate-700/50 flex justify-between items-center backdrop-blur-md">
               <div>
                 <h2 className="text-xl font-bold text-white">{activeDept.name}</h2>
@@ -364,6 +383,7 @@ export default function Home() {
               </div>
               <button onClick={() => setActiveDeptId(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20} className="text-slate-400" /></button>
             </div>
+
             <div className="p-8">
               {activeDept.completed ? (
                 <div className="text-center py-8">
@@ -398,6 +418,7 @@ export default function Home() {
   );
 }
 
+// --- FORM COMPONENT ---
 function ActiveForm({ dept, requiredPin, savedLink, onOpenSheet, onSubmit, isSubmitting }: any) {
   const [name, setName] = useState('');
   const [comment, setComment] = useState('');
