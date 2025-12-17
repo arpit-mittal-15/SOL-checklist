@@ -19,7 +19,7 @@ const MASTER_PIN = "9999";
 
 const DEPARTMENT_PINS: Record<string, string> = {
   'floor': '7830',
-  'basement': '2002',
+  'basement': '4290',
   'quality': '3003',
   'stock': '4004',
   'attendance': '9389',
