@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image'; // ADDED THIS IMPORT
-import { Loader2, ArrowLeft, BarChart3, Database, CheckCircle2, Package, Users, Activity, Box, AlertTriangle } from 'lucide-react';
+import Image from 'next/image';
+import { ArrowLeft, BarChart3, Database, CheckCircle2, Package, Users, Activity, Box, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
+import TechLoader from '@/components/TechLoader'; // Import new loader
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
@@ -13,6 +14,7 @@ export default function Dashboard() {
   useEffect(() => {
     async function getData() {
       try {
+        await new Promise(r => setTimeout(r, 1500)); // Delay for effect
         const res = await fetch('/api/dashboard');
         const json = await res.json();
         setMetrics(json.metrics);
@@ -25,16 +27,8 @@ export default function Dashboard() {
     getData();
   }, []);
 
-  if (loading) return (
-    <div className="flex h-screen w-full items-center justify-center bg-[#000510] text-white">
-      <div className="flex flex-col items-center gap-6 animate-pulse">
-        <div className="relative w-20 h-20">
-             <Image src="/logo.webp" alt="Loading" fill className="object-contain" />
-        </div>
-        <span className="text-sm font-bold tracking-widest text-blue-400">ANALYZING LIVE DATA...</span>
-      </div>
-    </div>
-  );
+  // 🔥 GLOBAL LOADER
+  if (loading) return <TechLoader />;
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-100 font-sans p-4 md:p-8 relative overflow-hidden flex flex-col">
