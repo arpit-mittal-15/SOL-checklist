@@ -21,7 +21,7 @@ const DEPARTMENT_PINS: Record<string, string> = {
   'floor': '7830',
   'basement': '4290',
   'quality': '4030',
-  'stock': '4004',
+  'stock': '1993',
   'attendance': '9389',
   'it_check': '6006'
 };
