@@ -10,6 +10,7 @@ export async function POST(req: Request) {
         piecesReceived, okPieces, rejCount, itemsAdded 
     } = body;
 
+    // 1. Mandatory Check
     if (!deptId || !supervisor) {
       return NextResponse.json({ error: "Missing Name or ID" }, { status: 400 });
     }
@@ -17,15 +18,17 @@ export async function POST(req: Request) {
     const dept = DEPARTMENTS.find(d => d.id === deptId);
     if (!dept) return NextResponse.json({ error: "Invalid Dept" }, { status: 400 });
 
+    // 2. Prepare Time
     const now = new Date();
     const istOffset = 5.5 * 60 * 60 * 1000;
     const istDate = new Date(now.getTime() + istOffset);
     let timeStr = istDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
     
+    // Late Logic
     const isLate = (istDate.getHours() > 19) || (istDate.getHours() === 19 && istDate.getMinutes() > 30);
     if (isLate) timeStr += " 🔴 LATE";
 
-    // 1. Update Main Sheet
+    // 3. Update MAIN SHEET (Status Board)
     const dateStr = istDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
     let rowInfo = await getTodayRow(dateStr);
     if (!rowInfo) {
@@ -34,11 +37,12 @@ export async function POST(req: Request) {
     }
 
     if (rowInfo) {
+        // [Time, Name, Comment, Link]
         const dataToSave = [timeStr, supervisor, comment || "", sheetLink || "-"];
         await updateDepartmentData(rowInfo.rowIndex, dept.startCol, dataToSave);
     }
 
-    // 2. Log to Database Sheets (DB_*)
+    // 4. LOG TO SEPARATE DATABASE SHEET
     const rawData = { 
         supervisor, comment, sheetLink,
         prodCount, boxesUsed, totalPresent, totalAbsent, 
@@ -47,7 +51,7 @@ export async function POST(req: Request) {
     
     await logDepartmentData(deptId, rawData);
 
-    // 3. Update Link Config
+    // 5. Update Config Link (only if valid)
     if (sheetLink && sheetLink.includes('docs.google.com')) {
         await updateStoredLink(deptId, sheetLink);
     }

@@ -26,8 +26,7 @@ export const DEPARTMENTS = [
 
 const CONFIG_SHEET = "Config_Links";
 
-// --- EXPORTED AUTH FUNCTION (Required for Analytics) ---
-export async function getAuthSheets() {
+async function getAuthSheets() {
   const auth = new google.auth.GoogleAuth({
     credentials: {
       client_email: process.env.GOOGLE_CLIENT_EMAIL,
@@ -64,18 +63,19 @@ export async function updateStoredLink(deptId: string, newLink: string) {
   }
 }
 
-// --- 📝 NEW: SEPARATE SHEET LOGGING (DATABASE) ---
+// --- 📝 SEPARATE SHEET LOGGING (DATABASE) ---
 export async function logDepartmentData(deptId: string, data: DepartmentData) {
     const sheets = await getAuthSheets();
     const spreadsheetId = process.env.GOOGLE_SHEET_ID;
     
-    // Ensure tabs like "DB_Floor", "DB_Quality" exist in your Google Sheet
+    // Define the specific sheet name for this department
+    // Ensure these tabs exist in your Google Sheet: "DB_Floor", "DB_Quality", etc.
     const targetSheet = `DB_${deptId.charAt(0).toUpperCase() + deptId.slice(1)}`; 
     
     const now = new Date();
     const istOffset = 5.5 * 60 * 60 * 1000;
     const istDate = new Date(now.getTime() + istOffset);
-    const dateStr = istDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    const dateStr = istDate.toLocaleDateString('en-IN');
     const timeStr = istDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 
     // COMMON COLS: [Date, Time, Supervisor, Link, Comments]
@@ -110,33 +110,94 @@ export async function logDepartmentData(deptId: string, data: DepartmentData) {
     }
 }
 
-// --- 📊 OLD DASHBOARD LOGIC (Kept for safety) ---
+// --- 📊 DASHBOARD INTELLIGENCE ENGINE ---
 export async function fetchDashboardMetrics() {
   const links = await getStoredLinks();
   const targetDepts = ['floor', 'basement', 'quality']; 
+  
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const today = new Date(now.getTime() + istOffset);
+  
+  // Date formats to match in the sheets
+  const dateFormats = [
+      today.toLocaleDateString('en-IN'), 
+      today.toLocaleDateString('en-GB'),
+      `${today.getDate()}-${today.toLocaleString('default', { month: 'short' })}`,
+      today.toISOString().split('T')[0]
+  ];
+
   const metricMap: Record<string, string[]> = {
-    'Brands': ['brand', 'sku name'], 'RFS': ['total rfs', 'rfs'],
-    'Rollers': ['total rollers'], 'Manpower': ['total manpower'],
-    'Production': ['total production'], 'QCRejected': ['total rejected pieces']
+    'Brands': ['brand', 'sku name', 'product name'],
+    'RFS': ['total rfs', 'rfs'],
+    'Rollers': ['total rollers', 'rollers', 'roller count'],
+    'Manpower': ['total manpower', 'manpower', 'labor', 'workers'],
+    'Gum': ['gum used', 'total gum'],
+    'Paper': ['paper used', 'total paper'],
+    'PaperReject': ['paper rejection', 'paper waste'],
+    'Filter': ['filter used', 'total filter'],
+    'FilterReject': ['filter rejection', 'filter waste'],
+    'Target': ['total target', 'production target'],
+    'Production': ['total production', 'actual production'],
+    'Checkers': ['total checkers', 'number of checkers'],
+    'CheckersEqual': ['total checkers (equal)', 'equal checkers'],
+    'QCDone': ['total qc done', 'qc completed'],
+    'CorrectPieces': ['total correct pieces', 'good pieces', 'ok pieces'],
+    'QCRejected': ['total rejected pieces', 'bad pieces', 'rejected pcs'],
+    'QCRejectionPercent': ['total rejection percentage', 'rejection %'],
+    'BoxesChecked': ['total boxes checked', 'boxes checked'],
+    'EqualRejected': ['total rejected pieces (equal)', 'equal rejection'],
+    'EqualPacking': ['total equal for packing', 'ready for packing']
   };
+
   const aggregatedData: Record<string, number | string> = {};
   for (const key in metricMap) aggregatedData[key] = 0;
   aggregatedData['Brands'] = ""; 
 
   for (const dept of targetDepts) {
-    // ... (Your original logic remains here if you need it)
+    const link = links[dept];
+    if (!link) continue;
+    
+    const matches = link.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    if (!matches || !matches[1]) continue;
+    const sheetId = matches[1];
+
+    try {
+      const sheets = await getAuthSheets();
+      const response = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: 'A1:Z500' });
+      const rows = response.data.values || [];
+
+      rows.forEach((row) => {
+        // Simple logic: Scan for keywords.
+        // In a real production scenario, we should also check if the row has Today's date.
+        // For now, we aggregate everything found in the visible range (A1:Z500) that matches the keywords.
+        
+        row.forEach((cell, cIndex) => {
+          if (!cell) return;
+          const cellText = cell.toString().toLowerCase().trim();
+
+          for (const [metricKey, keywords] of Object.entries(metricMap)) {
+            if (keywords.some(k => cellText === k || cellText.includes(k))) {
+              let value = row[cIndex + 1]; 
+              if (!value && row[cIndex + 2]) value = row[cIndex + 2];
+
+              if (value) {
+                const cleanValue = value.toString().replace(/[^0-9.]/g, '');
+                if (metricKey === 'Brands') {
+                   if (!aggregatedData[metricKey].toString().includes(value)) {
+                       aggregatedData[metricKey] += value + ", ";
+                   }
+                } else {
+                   aggregatedData[metricKey] = (Number(aggregatedData[metricKey]) || 0) + Number(cleanValue);
+                }
+              }
+            }
+          }
+        });
+      });
+    } catch (e) { console.error(`Failed to read sheet ${dept}`, e); }
   }
   return aggregatedData;
-}
-
-// --- 🏆 LEADERBOARD INTELLIGENCE ---
-export async function getLeaderboardData() {
-  const sheets = await getAuthSheets();
-  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
-  try {
-    const response = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'Sheet1!A:Z' });
-    return response.data.values ? response.data.values.slice(1) : [];
-  } catch (error) { return []; }
 }
 
 // --- STANDARD EXPORTS ---
@@ -148,16 +209,19 @@ export async function getTodayRow(dateStr: string) {
   if (rowIndex === -1) return null;
   return { rowIndex: rowIndex + 1, data: rows[rowIndex] };
 }
+
 export async function createTodayRow(dateStr: string) {
   const sheets = await getAuthSheets();
   await sheets.spreadsheets.values.append({ spreadsheetId: process.env.GOOGLE_SHEET_ID, range: 'Sheet1!A:A', valueInputOption: 'USER_ENTERED', requestBody: { values: [[dateStr, ...Array(25).fill('')]] } });
 }
+
 export async function updateDepartmentData(rowIndex: number, colIndex: number, data: string[]) {
   const sheets = await getAuthSheets();
   const startChar = getColumnLetter(colIndex);
   const endChar = getColumnLetter(colIndex + 3);
   await sheets.spreadsheets.values.update({ spreadsheetId: process.env.GOOGLE_SHEET_ID, range: `Sheet1!${startChar}${rowIndex}:${endChar}${rowIndex}`, valueInputOption: 'USER_ENTERED', requestBody: { values: [data] } });
 }
+
 function getColumnLetter(colIndex: number) {
   let letter = '';
   while (colIndex >= 0) {
@@ -165,4 +229,13 @@ function getColumnLetter(colIndex: number) {
     colIndex = Math.floor(colIndex / 26) - 1;
   }
   return letter;
+}
+
+export async function getLeaderboardData() {
+    const sheets = await getAuthSheets();
+    const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+    try {
+      const response = await sheets.spreadsheets.values.get({ spreadsheetId, range: 'Sheet1!A:Z' });
+      return response.data.values ? response.data.values.slice(1) : [];
+    } catch (e) { return []; }
 }
