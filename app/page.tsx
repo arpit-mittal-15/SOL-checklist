@@ -27,64 +27,22 @@ const DEPARTMENT_PINS: Record<string, string> = {
 };
 
 const DEFAULT_LINKS: Record<string, string> = {
-      'floor': 'https://docs.google.com/spreadsheets/d/1SHR6Oanaz-h-iYZBRSwlqci4PHuVRxpLG92MEcGSB9E/edit?gid=190658331#gid=190658331',
-      'basement': 'https://docs.google.com/spreadsheets/d/1SHR6Oanaz-h-iYZBRSwlqci4PHuVRxpLG92MEcGSB9E/edit?gid=1251109391#gid=1251109391',
-      'quality': 'https://docs.google.com/spreadsheets/d/1xKqVTss5nyXxP41ff-eVdS5aUBqb6Su8reE8OdWre3Y/edit?gid=1008672530#gid=1008672530',
-      'stock': 'https://docs.google.com/spreadsheets/d/12siBNbDOtmyAqIRH5cgc9APtw3rIEqBeZTzBRgiBrsg/edit?gid=580761467#gid=580761467',
-      'attendance': 'https://docs.google.com/spreadsheets/d/1O20bocLcEgeiUB9r8QdamIPweIbS1KOxpwk4ultJ8RU/edit?gid=0#gid=0',
-      'it_check': '#' 
-    };
+  'floor': 'https://docs.google.com/spreadsheets/d/1SHR6Oanaz-h-iYZBRSwlqci4PHuVRxpLG92MEcGSB9E/edit?gid=190658331#gid=190658331',
+  'basement': 'https://docs.google.com/spreadsheets/d/1SHR6Oanaz-h-iYZBRSwlqci4PHuVRxpLG92MEcGSB9E/edit?gid=1251109391#gid=1251109391',
+  'quality': 'https://docs.google.com/spreadsheets/d/1xKqVTss5nyXxP41ff-eVdS5aUBqb6Su8reE8OdWre3Y/edit?gid=1008672530#gid=1008672530',
+  'stock': 'https://docs.google.com/spreadsheets/d/12siBNbDOtmyAqIRH5cgc9APtw3rIEqBeZTzBRgiBrsg/edit?gid=580761467#gid=580761467',
+  'attendance': 'https://docs.google.com/spreadsheets/d/1O20bocLcEgeiUB9r8QdamIPweIbS1KOxpwk4ultJ8RU/edit?gid=0#gid=0',
+  'it_check': '#' 
+};
 
 // --- 🎨 THEME CONFIGURATION ---
 const DEPT_THEME: Record<string, any> = {
-  'floor': { 
-      icon: Factory, 
-      color: 'text-amber-400', 
-      bg: 'bg-amber-500/10', 
-      border: 'hover:border-amber-500/50',
-      glow: 'hover:shadow-[0_0_30px_rgba(245,158,11,0.2)]',
-      gradient: 'from-amber-500/20 to-transparent'
-  },
-  'basement': { 
-      icon: Warehouse, 
-      color: 'text-indigo-400', 
-      bg: 'bg-indigo-500/10', 
-      border: 'hover:border-indigo-500/50',
-      glow: 'hover:shadow-[0_0_30px_rgba(99,102,241,0.2)]',
-      gradient: 'from-indigo-500/20 to-transparent'
-  },
-  'quality': { 
-      icon: ClipboardCheck, 
-      color: 'text-emerald-400', 
-      bg: 'bg-emerald-500/10', 
-      border: 'hover:border-emerald-500/50',
-      glow: 'hover:shadow-[0_0_30px_rgba(16,185,129,0.2)]',
-      gradient: 'from-emerald-500/20 to-transparent'
-  },
-  'stock': { 
-      icon: Package, 
-      color: 'text-cyan-400', 
-      bg: 'bg-cyan-500/10', 
-      border: 'hover:border-cyan-500/50',
-      glow: 'hover:shadow-[0_0_30px_rgba(6,182,212,0.2)]',
-      gradient: 'from-cyan-500/20 to-transparent'
-  },
-  'attendance': { 
-      icon: Users, 
-      color: 'text-rose-400', 
-      bg: 'bg-rose-500/10', 
-      border: 'hover:border-rose-500/50',
-      glow: 'hover:shadow-[0_0_30px_rgba(244,63,94,0.2)]',
-      gradient: 'from-rose-500/20 to-transparent'
-  },
-  'it_check': { 
-      icon: Wifi, 
-      color: 'text-blue-400', 
-      bg: 'bg-blue-500/10', 
-      border: 'hover:border-blue-500/50',
-      glow: 'hover:shadow-[0_0_30px_rgba(59,130,246,0.2)]',
-      gradient: 'from-blue-500/20 to-transparent'
-  },
+  'floor': { icon: Factory, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'hover:border-amber-500/50', gradient: 'from-amber-500/20 to-transparent' },
+  'basement': { icon: Warehouse, color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'hover:border-indigo-500/50', gradient: 'from-indigo-500/20 to-transparent' },
+  'quality': { icon: ClipboardCheck, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'hover:border-emerald-500/50', gradient: 'from-emerald-500/20 to-transparent' },
+  'stock': { icon: Package, color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'hover:border-cyan-500/50', gradient: 'from-cyan-500/20 to-transparent' },
+  'attendance': { icon: Users, color: 'text-rose-400', bg: 'bg-rose-500/10', border: 'hover:border-rose-500/50', gradient: 'from-rose-500/20 to-transparent' },
+  'it_check': { icon: Wifi, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'hover:border-blue-500/50', gradient: 'from-blue-500/20 to-transparent' },
 };
 
 export default function Home() {
@@ -99,14 +57,11 @@ export default function Home() {
   const [ownerPin, setOwnerPin] = useState('');
   const [ownerError, setOwnerError] = useState('');
 
-  // --- 🔒 LOCKDOWN MODE ---
   useEffect(() => {
     if (embeddedLink) {
       document.body.style.overscrollBehaviorX = 'none';
       window.history.pushState(null, '', window.location.href);
-      const handlePopState = () => {
-        window.history.pushState(null, '', window.location.href);
-      };
+      const handlePopState = () => window.history.pushState(null, '', window.location.href);
       window.addEventListener('popstate', handlePopState);
       return () => {
         document.body.style.overscrollBehaviorX = 'auto';
@@ -131,7 +86,6 @@ export default function Home() {
 
   useEffect(() => { fetchData(); }, []);
 
-  // Updated to accept extraData
   const handleSubmit = async (deptId: string, name: string, comment: string, sheetLink: string | null, extraData: any) => {
     setSubmitting(deptId);
     try {
@@ -143,7 +97,7 @@ export default function Home() {
             supervisor: name, 
             comment, 
             sheetLink,
-            ...extraData // Send the raw numbers
+            ...extraData 
         }),
       });
       const json = await res.json();
@@ -188,7 +142,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-slate-100 font-sans overflow-hidden relative selection:bg-blue-500 selection:text-white flex flex-col">
-      
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute inset-0 bg-[#0f172a]" />
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 rounded-full blur-[120px] animate-[pulse_8s_infinite]" />
@@ -200,17 +153,10 @@ export default function Home() {
         <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
            <div className="bg-[#1e293b] border border-slate-700 p-8 rounded-3xl w-full max-w-sm text-center relative shadow-2xl">
               <button onClick={() => {setShowOwnerLogin(false); setOwnerError('')}} className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"><X size={20}/></button>
-              <div className="mx-auto w-16 h-16 bg-blue-600/20 rounded-full flex items-center justify-center mb-4 text-blue-400 ring-4 ring-blue-500/10"><BarChart3 size={32} /></div>
               <h2 className="text-xl font-bold text-white mb-1">Command Access</h2>
-              <p className="text-slate-400 text-xs mb-6">Master Verification Required</p>
-              <input 
-                type="password" 
-                className={`w-full bg-slate-900 border rounded-xl h-14 text-center text-white text-xl font-bold tracking-[0.5em] mb-4 focus:outline-none transition-all ${ownerError ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'}`}
-                maxLength={4} value={ownerPin} onChange={e => {setOwnerPin(e.target.value); setOwnerError('')}} placeholder="••••"
-                onKeyDown={(e) => e.key === 'Enter' && handleOwnerLogin()}
-              />
-              <button onClick={handleOwnerLogin} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-blue-600/20">ACCESS CONSOLE</button>
-              {ownerError && <div className="text-red-400 text-xs font-bold mt-4 animate-pulse flex items-center justify-center gap-1"><AlertTriangle size={12}/> {ownerError}</div>}
+              <input type="password" className="w-full bg-slate-900 border rounded-xl h-14 text-center text-white text-xl font-bold mb-4" value={ownerPin} onChange={e => setOwnerPin(e.target.value)} placeholder="••••" onKeyDown={(e) => e.key === 'Enter' && handleOwnerLogin()} />
+              <button onClick={handleOwnerLogin} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl">ACCESS CONSOLE</button>
+              {ownerError && <div className="text-red-400 text-xs font-bold mt-4">{ownerError}</div>}
            </div>
         </div>
       )}
@@ -222,7 +168,6 @@ export default function Home() {
                     <div className="relative h-8 w-8 md:h-10 md:w-10">
                         <Image src="/logo.webp" alt="Sol France" fill className="object-contain" />
                     </div>
-                    <div className="w-px h-8 bg-white/10 mx-2"></div>
                     <div>
                         <h3 className="text-base font-bold text-white leading-tight">{activeDept?.name}</h3>
                         <p className="text-[10px] text-slate-400 uppercase tracking-wider flex items-center gap-1"><span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>Live Workspace</p>
@@ -239,15 +184,11 @@ export default function Home() {
                 ) : (
                    <iframe 
                      src={embeddedLink} 
-                     className={`relative z-10 w-full h-full border-0 transition-opacity duration-700 opacity-100`} 
+                     className="relative z-10 w-full h-full border-0 transition-opacity duration-700 opacity-100"
                      allow="clipboard-write; clipboard-read; popups; presentations" 
                      sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation allow-downloads allow-modals"
                    />
                 )}
-            </div>
-
-            <div className="bg-[#0f172a] py-2 text-center text-[9px] text-slate-600 font-medium uppercase tracking-widest border-t border-white/5 z-50">
-                © 2025 Sol France. All rights reserved.
             </div>
          </div>
       )}
@@ -257,42 +198,18 @@ export default function Home() {
            <div className="relative h-10 w-32 md:h-12 md:w-40 hover:opacity-80 transition-opacity cursor-pointer">
              <Image src="/logo.webp" alt="Logo" fill className="object-contain object-left" priority />
            </div>
-           
            <div className="hidden lg:block h-8 w-px bg-white/10"></div>
-           
-           <Link href="/leaderboard" className="hidden lg:flex items-center gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 px-4 py-2 rounded-lg text-xs font-bold border border-yellow-500/20 transition-all hover:scale-105">
+           <Link href="/leaderboard" className="hidden lg:flex items-center gap-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 px-4 py-2 rounded-lg text-xs font-bold border border-yellow-500/20">
              <Trophy size={14} /> TOP PERFORMERS
            </Link>
-
            <button onClick={() => setShowOwnerLogin(true)} className="hidden lg:flex items-center gap-2 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white px-4 py-2 rounded-lg text-xs font-bold border border-white/5 transition-all">
              <BarChart3 size={14} /> DASHBOARD
            </button>
         </div>
-
-        <div className="flex items-center gap-6">
-          <div className="text-right hidden sm:block">
-            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Current Date</div>
-            <div className="text-lg font-bold text-white tracking-tight">{dateStr}</div>
-          </div>
-          <div className="relative h-14 w-14 flex items-center justify-center">
-            <svg className="h-full w-full -rotate-90 transform" viewBox="0 0 36 36">
-              <path className="text-slate-800" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
-              <path className="text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.6)] transition-all duration-1000 ease-out" strokeDasharray={`${progress}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">{Math.round(progress)}%</div>
-          </div>
-        </div>
+        <div className="text-lg font-bold text-white tracking-tight">{dateStr}</div>
       </header>
 
       <main className="relative z-10 container mx-auto px-6 py-6 flex-1 flex flex-col justify-center">
-        
-        <div className="mb-8 bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 flex items-center justify-center gap-3 text-amber-200 backdrop-blur-sm max-w-4xl mx-auto w-full">
-            <div className="p-2 bg-amber-500/10 rounded-full"><AlertTriangle size={16} className="animate-pulse" /></div>
-            <span className="text-xs md:text-sm font-medium tracking-wide">
-                <strong className="text-amber-400">7:30 PM DEADLINE:</strong> Late submissions are automatically flagged in the Owner's Console.
-            </span>
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl mx-auto">
           {data.map((dept) => {
             const isIT = dept.id === 'it_check';
@@ -319,47 +236,22 @@ export default function Home() {
                   }
                 `}
               >
-                {!isLocked && !isCompleted && (
-                    <div className={`absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br ${theme.gradient} blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity duration-700`}></div>
-                )}
-
+                {!isLocked && !isCompleted && <div className={`absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br ${theme.gradient} blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity duration-700`}></div>}
                 <div className="flex justify-between items-start w-full relative z-10">
-                  <div className={`
-                    p-3.5 rounded-2xl transition-all duration-500 shadow-inner
-                    ${isCompleted 
-                        ? 'bg-emerald-500/20 text-emerald-400' 
-                        : isLocked 
-                            ? 'bg-slate-800 text-slate-500' 
-                            : `${theme.bg} ${theme.color} group-hover:scale-110 group-hover:shadow-lg`
-                    }
-                  `}>
-                    {isCompleted ? <CheckCircle2 size={28} strokeWidth={2.5}/> : isLocked ? <Lock size={28} /> : <Icon size={28} strokeWidth={1.5}/>}
+                  <div className={`p-3.5 rounded-2xl transition-all duration-500 shadow-inner ${isCompleted ? 'bg-emerald-500/20 text-emerald-400' : isLocked ? 'bg-slate-800 text-slate-500' : `${theme.bg} ${theme.color} group-hover:scale-110`}`}>
+                    {isCompleted ? <CheckCircle2 size={28} /> : isLocked ? <Lock size={28} /> : <Icon size={28} />}
                   </div>
-                  
-                  <div className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border flex items-center gap-1.5
-                    ${isCompleted 
-                        ? isLate ? 'bg-red-500/10 border-red-500/20 text-red-300' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' 
-                        : isLocked ? 'bg-slate-900 border-slate-700 text-slate-500' 
-                        : 'bg-slate-700/30 border-slate-600 text-slate-400 group-hover:bg-white/5 group-hover:text-white group-hover:border-white/20'}
-                  `}>
+                  <div className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border flex items-center gap-1.5 ${isCompleted ? (isLate ? 'bg-red-500/10 border-red-500/20 text-red-300' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300') : 'bg-slate-700/30 border-slate-600 text-slate-400'}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${isCompleted ? (isLate ? 'bg-red-500' : 'bg-emerald-500') : isLocked ? 'bg-slate-600' : 'bg-blue-500 animate-pulse'}`}></span>
                     {isCompleted ? (isLate ? 'Late' : 'Done') : isLocked ? 'Locked' : 'Active'}
                   </div>
                 </div>
-
                 <div className="mt-8 relative z-10">
-                  <h3 className="text-xl font-bold text-white mb-1 group-hover:text-white transition-colors tracking-tight">
-                    {dept.name}
-                  </h3>
+                  <h3 className="text-xl font-bold text-white mb-1 group-hover:text-white transition-colors tracking-tight">{dept.name}</h3>
                   {isCompleted ? (
-                    <div className="text-xs text-slate-400 font-medium flex items-center gap-1.5 mt-2">
-                       By {dept.supervisor} • {dept.timestamp.replace('🔴 LATE', '')}
-                    </div>
+                    <div className="text-xs text-slate-400 font-medium flex items-center gap-1.5 mt-2">By {dept.supervisor} • {dept.timestamp.replace('🔴 LATE', '')}</div>
                   ) : (
-                    <div className="text-xs text-slate-500 group-hover:text-slate-300 flex items-center gap-2 font-medium mt-2">
-                       {isLocked ? 'Waiting for previous steps...' : 'Tap to open workspace'}
-                       {!isLocked && <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />}
-                    </div>
+                    <div className="text-xs text-slate-500 group-hover:text-slate-300 flex items-center gap-2 font-medium mt-2">{isLocked ? 'Waiting...' : 'Tap to open workspace'} {!isLocked && <ArrowRight size={12} />}</div>
                   )}
                 </div>
               </button>
@@ -368,16 +260,11 @@ export default function Home() {
         </div>
       </main>
 
-      <footer className="relative z-10 py-6 text-center text-[10px] text-slate-600 font-medium uppercase tracking-widest mt-auto">
-         © 2025 Sol France. All rights reserved.
-      </footer>
-
+      {/* --- TASK MODAL --- */}
       {activeDept && !embeddedLink && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-xl animate-in fade-in duration-300" onClick={() => setActiveDeptId(null)}/>
           <div className="relative w-full max-w-lg bg-[#0f172a] border border-slate-700 rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-            
-            {/* Modal Header */}
             <div className="bg-[#1e293b]/80 p-6 border-b border-slate-700/50 flex justify-between items-center backdrop-blur-md">
               <div>
                 <h2 className="text-xl font-bold text-white">{activeDept.name}</h2>
@@ -385,19 +272,12 @@ export default function Home() {
               </div>
               <button onClick={() => setActiveDeptId(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X size={20} className="text-slate-400" /></button>
             </div>
-
             <div className="p-8">
               {activeDept.completed ? (
                 <div className="text-center py-8">
-                  <div className="inline-flex p-5 bg-emerald-500/10 rounded-full text-emerald-400 mb-6 border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.15)]">
-                    <CheckCircle2 size={56} strokeWidth={1.5} />
-                  </div>
+                  <div className="inline-flex p-5 bg-emerald-500/10 rounded-full text-emerald-400 mb-6 border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.15)]"><CheckCircle2 size={56} /></div>
                   <h3 className="text-white font-bold text-xl">Submission Received</h3>
                   <div className="mt-6 bg-slate-900/50 rounded-2xl p-5 border border-slate-800 text-left space-y-2">
-                     <div className="flex justify-between items-center border-b border-slate-800 pb-2 mb-2">
-                        <span className="text-xs text-slate-500 uppercase tracking-widest font-bold">Log Details</span>
-                        <div className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">VERIFIED</div>
-                     </div>
                      <p className="text-sm text-slate-400 flex justify-between">Supervisor: <span className="text-white font-bold">{activeDept.supervisor}</span></p>
                      <p className="text-sm text-slate-400 flex justify-between">Time: <span className="text-white font-bold">{activeDept.timestamp}</span></p>
                   </div>
@@ -457,10 +337,7 @@ function ActiveForm({ dept, requiredPin, savedLink, onOpenSheet, onSubmit, isSub
     const newFieldErrors: Record<string, boolean> = {};
 
     // 1. MANDATORY NAME CHECK
-    if (!name.trim()) { 
-        hasError = true; 
-        newFieldErrors['name'] = true;
-    }
+    if (!name.trim()) { hasError = true; newFieldErrors['name'] = true; }
 
     // 2. MANDATORY DYNAMIC FIELDS CHECK
     if (dept.id === 'floor' || dept.id === 'basement') {
@@ -483,7 +360,7 @@ function ActiveForm({ dept, requiredPin, savedLink, onOpenSheet, onSubmit, isSub
         return;
     }
     
-    // 3. OPTIONAL LINK CHECK (Only check if user typed something)
+    // 3. OPTIONAL LINK CHECK
     if (link.trim() !== '' && !link.includes('docs.google.com/spreadsheets')) { 
         setError("Invalid Google Sheet Link (Leave empty if not updating)"); return; 
     }
@@ -524,21 +401,16 @@ function ActiveForm({ dept, requiredPin, savedLink, onOpenSheet, onSubmit, isSub
   if (!isVerified) {
     return (
       <div className="space-y-8 text-center py-4">
-        <div className="mx-auto w-20 h-20 bg-slate-800/50 rounded-[2rem] flex items-center justify-center text-slate-400 border border-slate-700 shadow-inner">
-           <KeyRound size={36} strokeWidth={1.5} />
-        </div>
+        <div className="mx-auto w-20 h-20 bg-slate-800/50 rounded-[2rem] flex items-center justify-center text-slate-400 border border-slate-700 shadow-inner"><KeyRound size={36} /></div>
         <div>
            <h3 className="text-white font-bold text-xl">Identity Verification</h3>
            <p className="text-slate-400 text-sm mt-2">Enter your 4-digit Department PIN</p>
         </div>
         <div className="flex justify-center">
-          <input 
-            type="password" maxLength={4} className="w-56 h-16 bg-slate-900 border border-slate-600 rounded-2xl text-center text-3xl font-bold text-white tracking-[0.5em] focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/20 transition-all placeholder:text-slate-800" placeholder="••••" value={pin} 
-            onChange={(e) => { setPin(e.target.value); setError(''); }} onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
-          />
+          <input type="password" maxLength={4} className="w-56 h-16 bg-slate-900 border border-slate-600 rounded-2xl text-center text-3xl font-bold text-white tracking-[0.5em] focus:border-blue-500 focus:outline-none" placeholder="••••" value={pin} onChange={(e) => { setPin(e.target.value); setError(''); }} onKeyDown={(e) => e.key === 'Enter' && handleVerify()} />
         </div>
-        <button onClick={handleVerify} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-blue-600/20 hover:shadow-blue-600/40 hover:-translate-y-0.5">VERIFY & PROCEED</button>
-        {error && <div className="text-red-400 text-xs font-bold animate-pulse flex items-center justify-center gap-1"><AlertTriangle size={12}/> {error}</div>}
+        <button onClick={handleVerify} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-all">VERIFY & PROCEED</button>
+        {error && <div className="text-red-400 text-xs font-bold animate-pulse">{error}</div>}
       </div>
     );
   }
@@ -564,9 +436,6 @@ function ActiveForm({ dept, requiredPin, savedLink, onOpenSheet, onSubmit, isSub
             <label htmlFor="n" className="absolute left-4 top-[-10px] bg-[#0f172a] px-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider transition-all peer-placeholder-shown:top-4 peer-placeholder-shown:text-slate-500 peer-focus:top-[-10px] peer-focus:text-blue-500 pointer-events-none">Supervisor Name</label>
         </div>
 
-        {/* --- DYNAMIC FIELDS PER DEPARTMENT --- */}
-        
-        {/* 1. FLOOR & BASEMENT */}
         {(dept.id === 'floor' || dept.id === 'basement') && (
             <div className="grid grid-cols-2 gap-4">
                 <div className="relative group">
@@ -582,7 +451,6 @@ function ActiveForm({ dept, requiredPin, savedLink, onOpenSheet, onSubmit, isSub
             </div>
         )}
 
-        {/* 2. ATTENDANCE */}
         {dept.id === 'attendance' && (
             <div className="grid grid-cols-2 gap-4">
                 <div className="relative group">
@@ -598,7 +466,6 @@ function ActiveForm({ dept, requiredPin, savedLink, onOpenSheet, onSubmit, isSub
             </div>
         )}
 
-        {/* 3. QUALITY */}
         {dept.id === 'quality' && (
             <div className="space-y-4">
                  <div className="relative group">
@@ -621,7 +488,6 @@ function ActiveForm({ dept, requiredPin, savedLink, onOpenSheet, onSubmit, isSub
             </div>
         )}
 
-        {/* 4. STOCK */}
         {dept.id === 'stock' && (
             <div className="relative group">
                 <div className="absolute left-3 top-3 text-cyan-500"><Package size={16}/></div>

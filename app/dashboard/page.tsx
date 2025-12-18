@@ -1,306 +1,163 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
-import { ArrowLeft, BarChart3, Database, CheckCircle2, Package, Users, Activity, Box, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
-import TechLoader from '@/components/TechLoader'; // Import new loader
+import { ArrowLeft, BarChart3, TrendingUp, Activity, AlertTriangle, Users, Trophy } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import TechLoader from '@/components/TechLoader';
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
-  const [metrics, setMetrics] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState('production');
+  const [data, setData] = useState<any>(null);
 
   useEffect(() => {
-    async function getData() {
-      try {
-        await new Promise(r => setTimeout(r, 1500)); // Delay for effect
-        const res = await fetch('/api/dashboard');
-        const json = await res.json();
-        setMetrics(json.metrics);
-      } catch (e) {
-        console.error(e);
-      } finally {
+    fetch('/api/dashboard')
+      .then(res => res.json())
+      .then(json => {
+        if(json.success) setData(json);
         setLoading(false);
-      }
-    }
-    getData();
+      });
   }, []);
 
-  // 🔥 GLOBAL LOADER
   if (loading) return <TechLoader />;
+  
+  if (!data) return (
+    <div className="min-h-screen bg-[#0f172a] text-white flex flex-col items-center justify-center p-4">
+        <AlertTriangle size={48} className="text-red-500 mb-4" />
+        <h2 className="text-xl font-bold">System Offline</h2>
+        <p className="text-slate-400">Unable to connect to Factory Database.</p>
+        <Link href="/" className="mt-6 px-6 py-3 bg-blue-600 rounded-xl font-bold hover:bg-blue-500 transition">Return Home</Link>
+    </div>
+  );
+
+  const { kpis, graphData, supervisorScores, anomalies } = data;
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-slate-100 font-sans p-4 md:p-8 relative overflow-hidden flex flex-col">
+    <div className="min-h-screen bg-[#0f172a] text-slate-100 p-6 md:p-10 font-sans">
       
-      {/* Background Ambience */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] bg-blue-600/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-20%] left-[-10%] w-[60%] h-[60%] bg-purple-600/10 rounded-full blur-[120px]" />
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 mix-blend-overlay"></div>
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+        <div>
+            <h1 className="text-3xl md:text-4xl font-black text-white flex items-center gap-3 tracking-tight">
+                <BarChart3 className="text-blue-500" size={32} /> Command Center
+            </h1>
+            <p className="text-slate-400 text-sm font-medium mt-1">Real-time Factory Intelligence & Analytics</p>
+        </div>
+        <Link href="/" className="flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-sm font-bold transition-all border border-slate-700">
+            <ArrowLeft size={16} /> Back to Floor
+        </Link>
       </div>
 
-      <div className="relative z-10 max-w-6xl mx-auto space-y-8 flex-1 w-full">
-        
-        {/* --- HEADER --- */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            {/* LOGO ADDED HERE */}
-            <div className="relative h-12 w-12 bg-white/5 rounded-xl p-2 border border-white/10">
-                 <Image src="/logo.webp" alt="Sol France" fill className="object-contain" />
-            </div>
+      {/* ANOMALY ALERT BANNER */}
+      {anomalies && anomalies.length > 0 && (
+        <div className="mb-8 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-4">
+            <AlertTriangle className="text-red-500 shrink-0" size={20} />
             <div>
-                <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
-                Owner's Console
-                </h1>
-                <p className="text-slate-400 mt-1 text-sm font-medium">Real-time Manufacturing Intelligence</p>
+                <h4 className="text-red-400 font-bold text-sm uppercase tracking-wide">Operational Risk Detected</h4>
+                {anomalies.map((a: any, i: number) => (
+                    <p key={i} className="text-sm text-slate-300 mt-1">
+                        {a.dept} {a.metric} is <strong>{a.value}</strong> (Avg: {a.average}). This is a {a.severity} deviation.
+                    </p>
+                ))}
             </div>
-          </div>
-          <Link href="/" className="self-start md:self-auto flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white transition-colors bg-white/5 hover:bg-white/10 px-4 py-2 rounded-lg border border-white/10">
-            <ArrowLeft size={16} /> EXIT
-          </Link>
         </div>
+      )}
 
-        {/* --- NAVIGATION TABS --- */}
-        <div className="flex gap-2 p-1 bg-slate-900/50 rounded-xl w-full md:w-fit border border-slate-700 backdrop-blur-md overflow-x-auto">
-            <TabButton 
-                label="Cone Production" 
-                icon={<Database size={16}/>} 
-                active={activeTab === 'production'} 
-                onClick={() => setActiveTab('production')} 
-            />
-            <TabButton 
-                label="Quality Check" 
-                icon={<CheckCircle2 size={16}/>} 
-                active={activeTab === 'quality'} 
-                onClick={() => setActiveTab('quality')} 
-            />
-            <TabButton 
-                label="Equal Team" 
-                icon={<Users size={16}/>} 
-                active={activeTab === 'equal'} 
-                onClick={() => setActiveTab('equal')} 
-            />
-        </div>
-
-        {/* --- MAIN CONTENT AREA --- */}
-        <div className="bg-[#1e293b]/50 border border-slate-700 rounded-3xl backdrop-blur-xl shadow-2xl p-6 min-h-[500px]">
-            
-            {/* 1. PRODUCTION TAB */}
-            {activeTab === 'production' && (
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-                    
-                    {/* Header */}
-                    <div className="flex items-center gap-3 border-b border-slate-700 pb-4">
-                        <div className="bg-blue-500/20 p-2 rounded-lg text-blue-400"><Database size={24} /></div>
-                        <h2 className="text-2xl font-bold text-white">Cone Production Update</h2>
-                    </div>
-
-                    {/* Progress Bar: Target vs Actual */}
-                    <ProgressBar label="Daily Target Achievement" current={metrics?.Production} total={metrics?.Target} color="blue" />
-
-                    <div className="grid md:grid-cols-2 gap-8">
-                        {/* Left Column: Core Metrics */}
-                        <TableCard title="Operational Metrics">
-                            <MetricRow label="Total SKU / Brands" value={metrics?.Brands || '-'} />
-                            <MetricRow label="Total RFS" value={metrics?.RFS} />
-                            <MetricRow label="Total Rollers" value={metrics?.Rollers} />
-                            <MetricRow label="Total Manpower" value={metrics?.Manpower} unit="Staff" />
-                            <MetricRow label="Target" value={metrics?.Target} unit="Units" />
-                            <MetricRow label="Total Production" value={metrics?.Production} unit="Units" highlight />
-                        </TableCard>
-
-                        {/* Right Column: Materials */}
-                        <TableCard title="Material Consumption">
-                            <MetricRow label="Gum Used" value={metrics?.Gum} unit="Kg" />
-                            <MetricRow label="Paper Used" value={metrics?.Paper} unit="Kg" />
-                            <MetricRow label="Paper Rejection" value={metrics?.PaperReject} unit="Kg" isBad />
-                            <MetricRow label="Filter Used" value={metrics?.Filter} unit="Pcs" />
-                            <MetricRow label="Filter Rejection" value={metrics?.FilterReject} unit="Pcs" isBad />
-                        </TableCard>
-                    </div>
-                </div>
-            )}
-
-            {/* 2. QUALITY CHECK TAB */}
-            {activeTab === 'quality' && (
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-                    
-                    <div className="flex items-center gap-3 border-b border-slate-700 pb-4">
-                        <div className="bg-green-500/20 p-2 rounded-lg text-green-400"><CheckCircle2 size={24} /></div>
-                        <h2 className="text-2xl font-bold text-white">Quality Check Update</h2>
-                    </div>
-
-                     {/* Visual Yield Bar */}
-                     <div className="bg-slate-900/40 p-6 rounded-2xl border border-slate-700">
-                        <div className="flex justify-between mb-2">
-                            <span className="text-sm font-bold text-slate-400 uppercase tracking-wider">Quality Yield Rate</span>
-                            <span className="text-sm font-bold text-white">
-                                {metrics?.CorrectPieces || 0} OK <span className="text-slate-600">|</span> <span className="text-red-400">{metrics?.QCRejected || 0} Rejected</span>
-                            </span>
-                        </div>
-                        {/* Visual Bar Graph */}
-                        <div className="h-6 bg-slate-800 rounded-full overflow-hidden flex w-full">
-                            <div className="h-full bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]" style={{ width: `${(metrics?.CorrectPieces / (metrics?.QCDone || 1)) * 100}%` }}></div>
-                            <div className="h-full bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]" style={{ width: `${(metrics?.QCRejected / (metrics?.QCDone || 1)) * 100}%` }}></div>
-                        </div>
-                        <div className="flex justify-between mt-2 text-xs text-slate-500">
-                            <span>Success Rate</span>
-                            <span>Defect Rate</span>
-                        </div>
-                     </div>
-
-                    <div className="grid md:grid-cols-2 gap-8">
-                        <TableCard title="Team & Scope">
-                            <MetricRow label="Brands Checked" value={metrics?.Brands || '-'} />
-                            <MetricRow label="Total Checkers" value={metrics?.Checkers} unit="Staff" />
-                            <MetricRow label="Equal Checkers" value={metrics?.CheckersEqual} unit="Staff" />
-                            <MetricRow label="Total QC Verified" value={metrics?.QCDone} unit="Pcs" highlight />
-                        </TableCard>
-                        
-                        <TableCard title="Defect Analysis">
-                            <MetricRow label="Correct Pieces" value={metrics?.CorrectPieces} unit="Pcs" />
-                            <MetricRow label="Rejected Pieces" value={metrics?.QCRejected} unit="Pcs" isBad />
-                            <MetricRow label="Rejection Rate" value={metrics?.QCRejectionPercent} unit="%" isBad />
-                        </TableCard>
-                    </div>
-                </div>
-            )}
-
-            {/* 3. EQUAL TEAM TAB */}
-            {activeTab === 'equal' && (
-                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-                    
-                    <div className="flex items-center gap-3 border-b border-slate-700 pb-4">
-                        <div className="bg-purple-500/20 p-2 rounded-lg text-purple-400"><Users size={24} /></div>
-                        <h2 className="text-2xl font-bold text-white">Equal Team Report</h2>
-                    </div>
-
-                    {/* Big Visual Cards for Equal Team */}
-                    <div className="grid md:grid-cols-3 gap-6">
-                        <BigCard 
-                            label="Total Boxes Checked" 
-                            value={metrics?.BoxesChecked} 
-                            icon={<Box size={32}/>}
-                            color="blue" 
-                        />
-                        <BigCard 
-                            label="Rejected Pieces" 
-                            value={metrics?.EqualRejected} 
-                            icon={<AlertTriangle size={32}/>}
-                            color="red" 
-                        />
-                        <BigCard 
-                            label="Ready for Packing" 
-                            value={metrics?.EqualPacking} 
-                            icon={<Package size={32}/>}
-                            color="green" 
-                        />
-                    </div>
-                    
-                    <div className="p-4 bg-slate-900/30 border border-slate-700 rounded-xl text-center">
-                        <p className="text-sm text-slate-400">
-                            The Equal Team ensures final packaging standards. <br/>
-                            <span className="text-white font-bold">{metrics?.EqualPacking || 0}</span> units are cleared for dispatch today.
-                        </p>
-                    </div>
-                </div>
-            )}
-
-        </div>
+      {/* KPI GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-10">
+        <KpiCard label="Daily Production" value={kpis.totalProduction.toLocaleString()} unit="Units" color="blue" />
+        <KpiCard label="Efficiency Rate" value={kpis.efficiency} unit="%" color={kpis.efficiency > 90 ? "green" : "yellow"} />
+        <KpiCard label="Rejection Rate" value={kpis.rejectionRate} unit="%" color={Number(kpis.rejectionRate) < 2 ? "green" : "red"} />
+        <KpiCard label="Quality Score" value={kpis.qualityScore} unit="/100" color="purple" />
+        <KpiCard label="Staff Present" value={kpis.staffPresent} unit="Workers" color="orange" />
       </div>
-      
-      {/* --- FOOTER --- */}
-      <footer className="relative z-10 py-6 text-center text-[10px] text-slate-600 font-medium uppercase tracking-widest mt-auto">
-         © 2025 Sol France. All rights reserved.
-      </footer>
+
+      {/* ANALYTICS SECTION */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* GRAPH 1: Production Trend (Main) */}
+        <div className="lg:col-span-2 bg-[#1e293b]/50 p-8 rounded-3xl border border-slate-700/50 backdrop-blur-xl shadow-xl">
+            <div className="flex justify-between items-center mb-8">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <TrendingUp size={20} className="text-green-400"/> 14-Day Production Trend
+                </h3>
+                <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">Live Data</div>
+            </div>
+            
+            <div className="h-[300px] w-full">
+                {graphData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={graphData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                            <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} dy={10} />
+                            <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} dx={-10} />
+                            <Tooltip 
+                                contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', color: '#fff' }}
+                                cursor={{ fill: '#334155', opacity: 0.2 }}
+                            />
+                            <Bar dataKey="production" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={40} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                ) : (
+                    <div className="flex items-center justify-center h-full text-slate-500 font-medium">
+                        Not enough data to display trend
+                    </div>
+                )}
+            </div>
+        </div>
+
+        {/* GRAPH 2: Supervisor Leaderboard (Side) */}
+        <div className="bg-[#1e293b]/50 p-8 rounded-3xl border border-slate-700/50 backdrop-blur-xl shadow-xl flex flex-col">
+            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+                <Trophy size={20} className="text-yellow-400"/> Top Supervisors (SPI)
+            </h3>
+            
+            <div className="flex-1 space-y-4">
+                {supervisorScores && supervisorScores.length > 0 ? (
+                    supervisorScores.map((sup: any, i: number) => (
+                        <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                            <div className="flex items-center gap-3">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${i === 0 ? 'bg-yellow-500 text-black' : 'bg-slate-700 text-slate-300'}`}>
+                                    {i + 1}
+                                </div>
+                                <div>
+                                    <div className="text-sm font-bold text-white">{sup.name}</div>
+                                    <div className="text-[10px] text-slate-400">Total Output: {sup.totalOutput}</div>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-sm font-bold text-emerald-400">{sup.score}x</div>
+                                <div className="text-[10px] text-slate-500">Efficiency</div>
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    <div className="flex-1 flex flex-col justify-center items-center text-center opacity-50">
+                        <Users size={32} className="text-slate-600 mb-2" />
+                        <span className="text-sm text-slate-400">Awaiting Data</span>
+                    </div>
+                )}
+            </div>
+        </div>
+
+      </div>
     </div>
   );
 }
 
-// --- SUB-COMPONENTS ---
-
-function TabButton({ label, icon, active, onClick }: any) {
-    return (
-        <button 
-            onClick={onClick}
-            className={`flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
-                active 
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50 scale-[1.02]' 
-                : 'text-slate-400 hover:text-white hover:bg-slate-800'
-            }`}
-        >
-            {icon} {label}
-        </button>
-    );
-}
-
-function TableCard({ title, children }: any) {
-    return (
-        <div className="bg-slate-900/30 rounded-2xl border border-slate-700/50 overflow-hidden">
-            <div className="p-4 border-b border-slate-700/50 font-bold text-white text-sm bg-white/5 uppercase tracking-wider">{title}</div>
-            <div className="p-2">
-                <table className="w-full text-sm"><tbody>{children}</tbody></table>
-            </div>
-        </div>
-    );
-}
-
-function MetricRow({ label, value, unit, highlight = false, isBad = false }: any) {
-    const isLongText = typeof value === 'string' && value.length > 20;
-    
-    return (
-      <tr className="border-b border-slate-700/30 last:border-0 hover:bg-white/5 transition-colors group">
-        <td className="p-4 text-slate-400 font-medium group-hover:text-slate-200 transition-colors">{label}</td>
-        <td className={`p-4 text-right font-bold 
-            ${highlight ? 'text-xl text-green-400' : isBad ? 'text-red-400' : 'text-white'}
-            ${isLongText ? 'text-xs leading-tight max-w-[150px]' : ''}
-        `}>
-          {value || 0} <span className="text-[10px] text-slate-500 font-normal ml-1">{unit}</span>
-        </td>
-      </tr>
-    );
-}
-
-function ProgressBar({ label, current, total, color }: any) {
-    const safeCurrent = Number(current) || 0;
-    const safeTotal = Number(total) || 1; 
-    const percent = Math.min((safeCurrent / safeTotal) * 100, 100);
-    
-    return (
-        <div className="bg-slate-900/40 p-6 rounded-2xl border border-slate-700 shadow-inner">
-            <div className="flex justify-between mb-3 items-end">
-                <span className="text-sm font-bold text-slate-400 uppercase tracking-wider">{label}</span>
-                <div className="text-right">
-                    <span className="text-2xl font-black text-white">{safeCurrent}</span>
-                    <span className="text-sm text-slate-500 mx-1">/</span>
-                    <span className="text-sm font-bold text-slate-400">{safeTotal}</span>
-                </div>
-            </div>
-            <div className="h-4 bg-slate-800 rounded-full overflow-hidden">
-                <div 
-                    className={`h-full bg-blue-500 transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(59,130,246,0.6)]`} 
-                    style={{ width: `${percent}%` }}
-                >
-                    <div className="w-full h-full bg-white/20 animate-pulse"></div>
-                </div>
-            </div>
-            <div className="text-right mt-2 text-xs font-bold text-blue-400">{Math.round(percent)}% Completed</div>
-        </div>
-    );
-}
-
-function BigCard({ label, value, icon, color }: any) {
+function KpiCard({ label, value, unit, color }: any) {
     const colors: any = {
-        blue: 'text-blue-400 bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20',
-        green: 'text-green-400 bg-green-500/10 border-green-500/20 hover:bg-green-500/20',
-        red: 'text-red-400 bg-red-500/10 border-red-500/20 hover:bg-red-500/20',
+        blue: "text-blue-400 border-blue-500/20 bg-blue-500/5",
+        green: "text-emerald-400 border-emerald-500/20 bg-emerald-500/5",
+        red: "text-rose-400 border-rose-500/20 bg-rose-500/5",
+        yellow: "text-amber-400 border-amber-500/20 bg-amber-500/5",
+        purple: "text-purple-400 border-purple-500/20 bg-purple-500/5",
+        orange: "text-orange-400 border-orange-500/20 bg-orange-500/5",
     };
     return (
-        <div className={`p-6 rounded-3xl border flex flex-col items-center justify-center gap-3 transition-all hover:scale-[1.02] ${colors[color]}`}>
-            <div className="p-4 rounded-full bg-black/20">{icon}</div>
-            <span className="text-4xl font-black text-white tracking-tighter">{value || 0}</span>
-            <span className="text-xs font-bold uppercase opacity-80 tracking-widest">{label}</span>
+        <div className={`p-6 rounded-2xl border ${colors[color] || colors.blue} transition-transform hover:scale-[1.02]`}>
+            <div className="text-slate-400 text-[10px] uppercase font-bold tracking-widest mb-2">{label}</div>
+            <div className="text-3xl font-black tracking-tight">{value} <span className="text-sm opacity-60 font-medium ml-1">{unit}</span></div>
         </div>
     );
 }
