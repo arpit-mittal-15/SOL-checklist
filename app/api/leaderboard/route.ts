@@ -33,7 +33,7 @@ export async function GET() {
         return Math.max(0, 2000 - minutesOfDay);
     };
 
-    // 2. INITIALIZE
+    // 2. INITIALIZE Command
     const scores: Record<string, any> = {};
     DEPARTMENTS.forEach(d => {
         if (d.id !== 'it_check') {
