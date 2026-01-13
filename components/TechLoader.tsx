@@ -35,7 +35,7 @@ export default function TechLoader() {
         
         {/* LOGO */}
         <div className="relative w-28 h-28 mb-16 drop-shadow-[0_0_35px_rgba(255,255,255,0.15)] animate-[float_5s_ease-in-out_infinite]">
-           <Image src="/logo.webp" alt="Sol France" fill className="object-contain" priority />
+           <Image src="/logo.webp" alt="Sol France" fill sizes="112px" className="object-contain" priority />
         </div>
 
         {/* --- 3D BURNING CONE --- */}

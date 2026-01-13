@@ -114,7 +114,7 @@ export default function Leaderboard() {
       
       {/* --- FOOTER --- */}
       <footer className="relative z-10 py-6 text-center text-[10px] text-slate-600 font-medium uppercase tracking-widest mt-auto">
-         © 2025 Sol France. All rights reserved.
+         © {new Date().getFullYear()} Sol France. All rights reserved.
       </footer>
       
       {/* Animations */}

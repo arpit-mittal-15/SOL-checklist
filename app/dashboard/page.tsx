@@ -1,32 +1,47 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
-import { ArrowLeft, BarChart3, Database, CheckCircle2, Package, Users, Activity, Box, AlertTriangle, ChevronDown, UserCheck } from 'lucide-react';
+import { ArrowLeft, BarChart3, Database, CheckCircle2, Package, Users, Activity, Box, AlertTriangle, ChevronDown, UserCheck, Download } from 'lucide-react';
 import Link from 'next/link';
 import TechLoader from '@/components/TechLoader'; // Import new loader
+import html2canvas from 'html2canvas';
 
 export default function Dashboard() {
-  const [loading, setLoading] = useState(true);
-  const [metrics, setMetrics] = useState<any>(null);
+
+    const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('production');
   const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
   const [attendanceSection, setAttendanceSection] = useState<'basements' | 'firstFloor' | 'quality' | 'packaging' | null>(null);
+  const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [attendanceData, setAttendanceData] = useState<any>(null);
+  const [lastUpdated, setLastUpdated] = useState<string>('');
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    async function getData() {
+    async function fetchAttendance() {
       try {
-        await new Promise(r => setTimeout(r, 1500)); // Delay for effect
-        const res = await fetch('/api/dashboard');
+        console.log('📊 Fetching attendance data...');
+        const res = await fetch('/api/attendance');
         const json = await res.json();
-        setMetrics(json.metrics);
+        console.log('API Response:', json);
+        
+        if (json.success) {
+          console.log('✅ Attendance data received:', json.attendance);
+          console.log('📅 Last Updated:', json.lastUpdated);
+          setAttendanceData(json.attendance);
+          setLastUpdated(json.lastUpdated);
+        } else {
+          console.error('❌ API Error:', json.error);
+          if (json.message) console.log('Error message:', json.message);
+        }
       } catch (e) {
-        console.error(e);
+        console.error('❌ Failed to fetch attendance:', e);
       } finally {
-        setLoading(false);
+        setTimeout(() => setLoading(false), 1000);
       }
     }
-    getData();
+    fetchAttendance();
   }, []);
 
   // Close dropdown when clicking outside
@@ -51,6 +66,256 @@ export default function Dashboard() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showAttendanceDropdown]);
+
+  // PDF Generation Function - ALWAYS DOWNLOADS
+  const handleDownloadPDF = async () => {
+    if (!attendanceSection || !attendanceData) {
+      console.warn('No attendance data available for PDF generation');
+      return;
+    }
+    
+    setGeneratingPDF(true);
+    console.log("Generating PDF with attendance data:", attendanceData);
+
+    try {
+      // Dynamic import for jsPDF
+      const { default: jsPDF } = await import('jspdf');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      
+      const sectionName = 
+        attendanceSection === 'basements' ? 'Basements' :
+        attendanceSection === 'firstFloor' ? 'First Floor' :
+        attendanceSection === 'quality' ? 'Quality' :
+        'Packaging';
+      
+      const date = new Date().toLocaleDateString('en-IN');
+      
+      // Use text-based PDF generation (reliable and structured)
+      generateTextPDF(pdf, sectionName, date);
+      
+      const fileName = `Attendance_${sectionName.replace(/\s+/g, '_')}_${date.replace(/\//g, '-')}.pdf`;
+      pdf.save(fileName);
+      
+    } catch (error) {
+      console.error('Critical PDF error:', error);
+      // Last resort - create minimal PDF
+      try {
+        const { default: jsPDF } = await import('jspdf');
+        const pdf = new jsPDF();
+        pdf.setFontSize(16);
+        pdf.text('Attendance Report', 20, 20);
+        pdf.setFontSize(12);
+        pdf.text(`Department: ${attendanceSection}`, 20, 40);
+        pdf.text(`Date: ${new Date().toLocaleDateString('en-IN')}`, 20, 50);
+        pdf.text('Error: Could not generate detailed report.', 20, 70);
+        pdf.save(`Attendance_Report_${new Date().getTime()}.pdf`);
+      } catch (finalError) {
+        console.error('Final fallback failed:', finalError);
+      }
+    } finally {
+      setGeneratingPDF(false);
+    }
+  };
+
+  // Helper function to generate text-based PDF with proper tables
+  const generateTextPDF = (pdf: any, sectionName: string, date: string) => {
+    // Header with logo area
+    pdf.setFillColor(37, 99, 235);
+    pdf.rect(0, 0, 210, 40, 'F');
+    
+    pdf.setFontSize(24);
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('SOL FRANCE', 20, 18);
+    
+    pdf.setFontSize(14);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('Attendance Report', 20, 30);
+    
+    // Report Title
+    pdf.setFontSize(16);
+    pdf.setTextColor(0, 0, 0);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(`Attendance Report - ${sectionName}`, 20, 55);
+    
+    let yPos = 70;
+    
+    // Date & Department Section
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(37, 99, 235);
+    pdf.text('Date & Department', 20, yPos);
+    yPos += 8;
+    
+    // Draw table
+    pdf.setDrawColor(200, 200, 200);
+    pdf.setLineWidth(0.5);
+    
+    // Table header
+    pdf.setFillColor(240, 240, 240);
+    pdf.rect(20, yPos, 80, 8, 'FD');
+    pdf.rect(100, yPos, 90, 8, 'FD');
+    
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(0, 0, 0);
+    pdf.text('Field', 25, yPos + 6);
+    pdf.text('Value', 105, yPos + 6);
+    yPos += 8;
+    
+    // Date row
+    pdf.setFont('helvetica', 'normal');
+    pdf.rect(20, yPos, 80, 8, 'D');
+    pdf.rect(100, yPos, 90, 8, 'D');
+    pdf.text('Date of Report', 25, yPos + 6);
+    pdf.text(date, 105, yPos + 6);
+    yPos += 8;
+    
+    // Department row
+    pdf.rect(20, yPos, 80, 8, 'D');
+    pdf.rect(100, yPos, 90, 8, 'D');
+    pdf.text('Department', 25, yPos + 6);
+    pdf.text(sectionName, 105, yPos + 6);
+    yPos += 15;
+    
+    // Attendance Details based on section
+    if (attendanceSection === 'basements') {
+      // Roller Attendance
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(37, 99, 235);
+      pdf.text('Roller Attendance', 20, yPos);
+      yPos += 8;
+      
+      drawTable(pdf, yPos, [
+        ['Total Rollers', (attendanceData?.basementRollers || 0).toString() + ' Staff'],
+        ['Roller Present', (attendanceData?.basementRollersPresent || 0).toString() + ' Staff'],
+        ['Roller Absent', (attendanceData?.basementRollersAbsent || 0).toString() + ' Staff']
+      ]);
+      yPos += 32;
+      
+      // Filter Attendance
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(37, 99, 235);
+      pdf.text('Filter Attendance', 20, yPos);
+      yPos += 8;
+      
+      drawTable(pdf, yPos, [
+        ['Filter Total', (attendanceData?.filterTotal || 0).toString() + ' Staff'],
+        ['Filter Present', (attendanceData?.filterPresent || 0).toString() + ' Staff'],
+        ['Filter Absent', (attendanceData?.filterAbsent || 0).toString() + ' Staff']
+      ]);
+      yPos += 32;
+      
+      // Supervisor Attendance
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(37, 99, 235);
+      pdf.text('Supervisor Attendance', 20, yPos);
+      yPos += 8;
+      
+      drawTable(pdf, yPos, [
+        ['Supervisor Present', (attendanceData?.basementSupervisorPresent || 0).toString() + ' Staff'],
+        ['Supervisor Absent', (attendanceData?.basementSupervisorAbsent || 0).toString() + ' Staff']
+      ]);
+      
+    } else if (attendanceSection === 'firstFloor') {
+      // Roller Attendance
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(37, 99, 235);
+      pdf.text('Roller Attendance', 20, yPos);
+      yPos += 8;
+      
+      drawTable(pdf, yPos, [
+        ['Total Rollers', (attendanceData?.firstFloorRollers || 0).toString() + ' Staff'],
+        ['Roller Present', (attendanceData?.firstFloorRollersPresent || 0).toString() + ' Staff'],
+        ['Roller Absent', (attendanceData?.firstFloorRollersAbsent || 0).toString() + ' Staff']
+      ]);
+      yPos += 32;
+      
+      // Filter Attendance
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(37, 99, 235);
+      pdf.text('Filter Attendance', 20, yPos);
+      yPos += 8;
+      
+      drawTable(pdf, yPos, [
+        ['Filter Total', (attendanceData?.filterTotal || 0).toString() + ' Staff'],
+        ['Filter Present', (attendanceData?.filterPresent || 0).toString() + ' Staff'],
+        ['Filter Absent', (attendanceData?.filterAbsent || 0).toString() + ' Staff']
+      ]);
+      yPos += 32;
+      
+      // Supervisor Attendance
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(37, 99, 235);
+      pdf.text('Supervisor Attendance', 20, yPos);
+      yPos += 8;
+      
+      drawTable(pdf, yPos, [
+        ['Supervisor Present', (attendanceData?.firstFloorSupervisorPresent || 0).toString() + ' Staff'],
+        ['Supervisor Absent', (attendanceData?.firstFloorSupervisorAbsent || 0).toString() + ' Staff']
+      ]);
+      
+    } else if (attendanceSection === 'quality') {
+      // Checker Attendance
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(37, 99, 235);
+      pdf.text('Checker Attendance', 20, yPos);
+      yPos += 8;
+      
+      drawTable(pdf, yPos, [
+        ['Total Checkers', (attendanceData?.qualityTotal || 0).toString() + ' Staff'],
+        ['Total Present', (attendanceData?.qualityPresent || 0).toString() + ' Staff'],
+        ['Total Absent', (attendanceData?.qualityAbsent || 0).toString() + ' Staff']
+      ]);
+      
+    } else if (attendanceSection === 'packaging') {
+      // Manpower Attendance
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(37, 99, 235);
+      pdf.text('Manpower Attendance', 20, yPos);
+      yPos += 8;
+      
+      drawTable(pdf, yPos, [
+        ['Total Manpower', (attendanceData?.packingTotal || 0).toString() + ' Staff'],
+        ['Total Present', (attendanceData?.packingPresent || 0).toString() + ' Staff'],
+        ['Total Absent', (attendanceData?.packingAbsent || 0).toString() + ' Staff']
+      ]);
+    }
+    
+    // Footer
+    pdf.setFontSize(8);
+    pdf.setTextColor(128, 128, 128);
+    pdf.setFont('helvetica', 'italic');
+    pdf.text(`Generated on ${new Date().toLocaleString('en-IN')}`, 20, 280);
+    pdf.text(`© ${new Date().getFullYear()} Sol France. All rights reserved.`, 20, 285);
+  };
+  
+  // Helper to draw tables
+  const drawTable = (pdf: any, startY: number, rows: string[][]) => {
+    let yPos = startY;
+    
+    // Header
+    pdf.setFillColor(240, 240, 240);
+    pdf.rect(20, yPos, 80, 8, 'FD');
+    pdf.rect(100, yPos, 90, 8, 'FD');
+    
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(0, 0, 0);
+    pdf.text('Label', 25, yPos + 6);
+    pdf.text('Value', 105, yPos + 6);
+    yPos += 8;
+    
+    // Data rows
+    pdf.setFont('helvetica', 'normal');
+    rows.forEach(([label, value]) => {
+      pdf.rect(20, yPos, 80, 8, 'D');
+      pdf.rect(100, yPos, 90, 8, 'D');
+      pdf.text(label, 25, yPos + 6);
+      pdf.text(value, 105, yPos + 6);
+      yPos += 8;
+    });
+  };
 
   // 🔥 GLOBAL LOADER
   if (loading) return <TechLoader />;
@@ -206,33 +471,45 @@ export default function Dashboard() {
             {activeTab === 'attendance' && attendanceSection && (
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
                     
-                    {/* Basements Section */}
-                    {attendanceSection === 'basements' && (
-                        <>
-                            {/* Header */}
-                            <div className="flex items-center gap-3 border-b border-slate-700 pb-4">
-                                <div className="bg-purple-500/20 p-2 rounded-lg text-purple-400"><UserCheck size={24} /></div>
-                                <h2 className="text-2xl font-bold text-white">Attendance Report - Basements</h2>
-                            </div>
+                    {/* Content Wrapper for PDF */}
+                    <div ref={contentRef}>
+                        {/* Basements Section */}
+                        {attendanceSection === 'basements' && (
+                            <>
+                                {/* Header with Download Button */}
+                                <div className="flex items-center justify-between border-b border-slate-700 pb-4 mb-8">
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-purple-500/20 p-2 rounded-lg text-purple-400"><UserCheck size={24} /></div>
+                                        <h2 className="text-2xl font-bold text-white">Attendance Report - Basements</h2>
+                                    </div>
+                                    <button
+                                        onClick={handleDownloadPDF}
+                                        disabled={generatingPDF}
+                                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <Download size={16} />
+                                        {generatingPDF ? 'Generating...' : 'Save as PDF'}
+                                    </button>
+                                </div>
 
                             <div className="grid md:grid-cols-2 gap-6">
                                 <TableCard title="Date & Department">
-                                    <MetricRow label="Date of Report" value={new Date().toLocaleDateString('en-IN')} />
+                                    <MetricRow label="Date of Report" value={lastUpdated || new Date().toLocaleDateString('en-IN')} />
                                     <MetricRow label="Department" value="Basements" />
                                 </TableCard>
                                 <TableCard title="Roller Attendance">
-                                    <MetricRow label="Total Rollers" value={metrics?.Rollers || 0} unit="Staff" />
-                                    <MetricRow label="Roller Present" value={metrics?.RollerPresent || 0} unit="Staff" />
-                                    <MetricRow label="Roller Absent" value={metrics?.RollerAbsent || 0} unit="Staff" isBad />
+                                    <MetricRow label="Total Rollers" value={attendanceData?.basementRollers || 0} unit="Staff" />
+                                    <MetricRow label="Roller Present" value={attendanceData?.basementRollersPresent || 0} unit="Staff" />
+                                    <MetricRow label="Roller Absent" value={attendanceData?.basementRollersAbsent || 0} unit="Staff" isBad />
                                 </TableCard>
                                 <TableCard title="Filter Attendance">
-                                    <MetricRow label="Filter Total" value={metrics?.FilterTotal || 0} unit="Staff" />
-                                    <MetricRow label="Filter Present" value={metrics?.FilterPresent || 0} unit="Staff" />
-                                    <MetricRow label="Filter Absent" value={metrics?.FilterAbsent || 0} unit="Staff" isBad />
+                                    <MetricRow label="Filter Total" value={attendanceData?.filterTotal || 0} unit="Staff" />
+                                    <MetricRow label="Filter Present" value={attendanceData?.filterPresent || 0} unit="Staff" />
+                                    <MetricRow label="Filter Absent" value={attendanceData?.filterAbsent || 0} unit="Staff" isBad />
                                 </TableCard>
                                 <TableCard title="Supervisor Attendance">
-                                    <MetricRow label="Supervisor Present" value={metrics?.SupervisorPresent || 0} unit="Staff" />
-                                    <MetricRow label="Supervisor Absent" value={metrics?.SupervisorAbsent || 0} unit="Staff" isBad />
+                                    <MetricRow label="Supervisor Present" value={attendanceData?.basementSupervisorPresent || 0} unit="Staff" />
+                                    <MetricRow label="Supervisor Absent" value={attendanceData?.basementSupervisorAbsent || 0} unit="Staff" isBad />
                                 </TableCard>
                             </div>
                         </>
@@ -241,30 +518,40 @@ export default function Dashboard() {
                     {/* First Floor Section */}
                     {attendanceSection === 'firstFloor' && (
                         <>
-                            {/* Header */}
-                            <div className="flex items-center gap-3 border-b border-slate-700 pb-4">
-                                <div className="bg-purple-500/20 p-2 rounded-lg text-purple-400"><UserCheck size={24} /></div>
-                                <h2 className="text-2xl font-bold text-white">Attendance Report - First Floor</h2>
+                            {/* Header with Download Button */}
+                            <div className="flex items-center justify-between border-b border-slate-700 pb-4 mb-8">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-purple-500/20 p-2 rounded-lg text-purple-400"><UserCheck size={24} /></div>
+                                    <h2 className="text-2xl font-bold text-white">Attendance Report - First Floor</h2>
+                                </div>
+                                <button
+                                    onClick={handleDownloadPDF}
+                                    disabled={generatingPDF}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <Download size={16} />
+                                    {generatingPDF ? 'Generating...' : 'Save as PDF'}
+                                </button>
                             </div>
 
                             <div className="grid md:grid-cols-2 gap-6">
                                 <TableCard title="Date & Department">
-                                    <MetricRow label="Date of Report" value={new Date().toLocaleDateString('en-IN')} />
-                                    <MetricRow label="Department" value="Basement" />
+                                    <MetricRow label="Date of Report" value={lastUpdated || new Date().toLocaleDateString('en-IN')} />
+                                    <MetricRow label="Department" value="First Floor" />
                                 </TableCard>
                                 <TableCard title="Roller Attendance">
-                                    <MetricRow label="Total Rollers" value={metrics?.Rollers || 0} unit="Staff" />
-                                    <MetricRow label="Roller Present" value={metrics?.RollerPresent || 0} unit="Staff" />
-                                    <MetricRow label="Roller Absent" value={metrics?.RollerAbsent || 0} unit="Staff" isBad />
+                                    <MetricRow label="Total Rollers" value={attendanceData?.firstFloorRollers || 0} unit="Staff" />
+                                    <MetricRow label="Roller Present" value={attendanceData?.firstFloorRollersPresent || 0} unit="Staff" />
+                                    <MetricRow label="Roller Absent" value={attendanceData?.firstFloorRollersAbsent || 0} unit="Staff" isBad />
                                 </TableCard>
                                 <TableCard title="Filter Attendance">
-                                    <MetricRow label="Filter Total" value={metrics?.FilterTotal || 0} unit="Staff" />
-                                    <MetricRow label="Filter Present" value={metrics?.FilterPresent || 0} unit="Staff" />
-                                    <MetricRow label="Filter Absent" value={metrics?.FilterAbsent || 0} unit="Staff" isBad />
+                                    <MetricRow label="Filter Total" value={attendanceData?.filterTotal || 0} unit="Staff" />
+                                    <MetricRow label="Filter Present" value={attendanceData?.filterPresent || 0} unit="Staff" />
+                                    <MetricRow label="Filter Absent" value={attendanceData?.filterAbsent || 0} unit="Staff" isBad />
                                 </TableCard>
                                 <TableCard title="Supervisor Attendance">
-                                    <MetricRow label="Supervisor Present" value={metrics?.SupervisorPresent || 0} unit="Staff" />
-                                    <MetricRow label="Supervisor Absent" value={metrics?.SupervisorAbsent || 0} unit="Staff" isBad />
+                                    <MetricRow label="Supervisor Present" value={attendanceData?.firstFloorSupervisorPresent || 0} unit="Staff" />
+                                    <MetricRow label="Supervisor Absent" value={attendanceData?.firstFloorSupervisorAbsent || 0} unit="Staff" isBad />
                                 </TableCard>
                             </div>
                         </>
@@ -273,21 +560,31 @@ export default function Dashboard() {
                     {/* Quality Department Section */}
                     {attendanceSection === 'quality' && (
                         <>
-                            {/* Header */}
-                            <div className="flex items-center gap-3 border-b border-slate-700 pb-4">
-                                <div className="bg-purple-500/20 p-2 rounded-lg text-purple-400"><UserCheck size={24} /></div>
-                                <h2 className="text-2xl font-bold text-white">Attendance Report - Quality Department</h2>
+                            {/* Header with Download Button */}
+                            <div className="flex items-center justify-between border-b border-slate-700 pb-4 mb-8">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-purple-500/20 p-2 rounded-lg text-purple-400"><UserCheck size={24} /></div>
+                                    <h2 className="text-2xl font-bold text-white">Attendance Report - Quality Department</h2>
+                                </div>
+                                <button
+                                    onClick={handleDownloadPDF}
+                                    disabled={generatingPDF}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <Download size={16} />
+                                    {generatingPDF ? 'Generating...' : 'Save as PDF'}
+                                </button>
                             </div>
 
                             <div className="grid md:grid-cols-2 gap-6">
                                 <TableCard title="Date & Department">
-                                    <MetricRow label="Date of Report" value={new Date().toLocaleDateString('en-IN')} />
+                                    <MetricRow label="Date of Report" value={lastUpdated || new Date().toLocaleDateString('en-IN')} />
                                     <MetricRow label="Department" value="Quality Department" />
                                 </TableCard>
                                 <TableCard title="Checker Attendance">
-                                    <MetricRow label="Total Checkers" value={metrics?.Checkers || 0} unit="Staff" />
-                                    <MetricRow label="Total Present" value={metrics?.CheckersPresent || 0} unit="Staff" />
-                                    <MetricRow label="Total Absent" value={metrics?.CheckersAbsent || 0} unit="Staff" isBad />
+                                    <MetricRow label="Total Checkers" value={attendanceData?.qualityTotal || 0} unit="Staff" />
+                                    <MetricRow label="Total Present" value={attendanceData?.qualityPresent || 0} unit="Staff" />
+                                    <MetricRow label="Total Absent" value={attendanceData?.qualityAbsent || 0} unit="Staff" isBad />
                                 </TableCard>
                             </div>
                         </>
@@ -296,25 +593,36 @@ export default function Dashboard() {
                     {/* Packaging Department Section */}
                     {attendanceSection === 'packaging' && (
                         <>
-                            {/* Header */}
-                            <div className="flex items-center gap-3 border-b border-slate-700 pb-4">
-                                <div className="bg-purple-500/20 p-2 rounded-lg text-purple-400"><UserCheck size={24} /></div>
-                                <h2 className="text-2xl font-bold text-white">Attendance Report - Packing Department</h2>
+                            {/* Header with Download Button */}
+                            <div className="flex items-center justify-between border-b border-slate-700 pb-4 mb-8">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-purple-500/20 p-2 rounded-lg text-purple-400"><UserCheck size={24} /></div>
+                                    <h2 className="text-2xl font-bold text-white">Attendance Report - Packing Department</h2>
+                                </div>
+                                <button
+                                    onClick={handleDownloadPDF}
+                                    disabled={generatingPDF}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <Download size={16} />
+                                    {generatingPDF ? 'Generating...' : 'Save as PDF'}
+                                </button>
                             </div>
 
                             <div className="grid md:grid-cols-2 gap-6">
                                 <TableCard title="Date & Department">
-                                    <MetricRow label="Date of Report" value={new Date().toLocaleDateString('en-IN')} />
+                                    <MetricRow label="Date of Report" value={lastUpdated || new Date().toLocaleDateString('en-IN')} />
                                     <MetricRow label="Department" value="Packing Department" />
                                 </TableCard>
                                 <TableCard title="Manpower Attendance">
-                                    <MetricRow label="Total Manpower" value={metrics?.PackingManpower || 0} unit="Staff" />
-                                    <MetricRow label="Total Present" value={metrics?.PackingPresent || 0} unit="Staff" />
-                                    <MetricRow label="Total Absent" value={metrics?.PackingAbsent || 0} unit="Staff" isBad />
+                                    <MetricRow label="Total Manpower" value={attendanceData?.packingTotal || 0} unit="Staff" />
+                                    <MetricRow label="Total Present" value={attendanceData?.packingPresent || 0} unit="Staff" />
+                                    <MetricRow label="Total Absent" value={attendanceData?.packingAbsent || 0} unit="Staff" isBad />
                                 </TableCard>
                             </div>
                         </>
                     )}
+                    </div>
                 </div>
             )}
 
@@ -329,26 +637,26 @@ export default function Dashboard() {
                     </div>
 
                     {/* Progress Bar: Target vs Actual */}
-                    <ProgressBar label="Daily Target Achievement" current={metrics?.Production} total={metrics?.Target} color="blue" />
+                    <ProgressBar label="Daily Target Achievement" current={0} total={0} color="blue" />
 
                     <div className="grid md:grid-cols-2 gap-8">
                         {/* Left Column: Core Metrics */}
                         <TableCard title="Operational Metrics">
-                            <MetricRow label="Total SKU / Brands" value={metrics?.Brands || '-'} />
-                            <MetricRow label="Total RFS" value={metrics?.RFS} />
-                            <MetricRow label="Total Rollers" value={metrics?.Rollers} />
-                            <MetricRow label="Total Manpower" value={metrics?.Manpower} unit="Staff" />
-                            <MetricRow label="Target" value={metrics?.Target} unit="Units" />
-                            <MetricRow label="Total Production" value={metrics?.Production} unit="Units" highlight />
+                            <MetricRow label="Total SKU / Brands" value={'-'} />
+                            <MetricRow label="Total RFS" value={0} />
+                            <MetricRow label="Total Rollers" value={0} />
+                            <MetricRow label="Total Manpower" value={0} unit="Staff" />
+                            <MetricRow label="Target" value={0} unit="Units" />
+                            <MetricRow label="Total Production" value={0} unit="Units" highlight />
                         </TableCard>
 
                         {/* Right Column: Materials */}
                         <TableCard title="Material Consumption">
-                            <MetricRow label="Gum Used" value={metrics?.Gum} unit="Kg" />
-                            <MetricRow label="Paper Used" value={metrics?.Paper} unit="Kg" />
-                            <MetricRow label="Paper Rejection" value={metrics?.PaperReject} unit="Kg" isBad />
-                            <MetricRow label="Filter Used" value={metrics?.Filter} unit="Pcs" />
-                            <MetricRow label="Filter Rejection" value={metrics?.FilterReject} unit="Pcs" isBad />
+                            <MetricRow label="Gum Used" value={0} unit="Kg" />
+                            <MetricRow label="Paper Used" value={0} unit="Kg" />
+                            <MetricRow label="Paper Rejection" value={0} unit="Kg" isBad />
+                            <MetricRow label="Filter Used" value={0} unit="Pcs" />
+                            <MetricRow label="Filter Rejection" value={0} unit="Pcs" isBad />
                         </TableCard>
                     </div>
                 </div>
@@ -368,13 +676,13 @@ export default function Dashboard() {
                         <div className="flex justify-between mb-2">
                             <span className="text-sm font-bold text-slate-400 uppercase tracking-wider">Quality Yield Rate</span>
                             <span className="text-sm font-bold text-white">
-                                {metrics?.CorrectPieces || 0} OK <span className="text-slate-600">|</span> <span className="text-red-400">{metrics?.QCRejected || 0} Rejected</span>
+                                {0} OK <span className="text-slate-600">|</span> <span className="text-red-400">{0} Rejected</span>
                             </span>
                         </div>
                         {/* Visual Bar Graph */}
                         <div className="h-6 bg-slate-800 rounded-full overflow-hidden flex w-full">
-                            <div className="h-full bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]" style={{ width: `${(metrics?.CorrectPieces / (metrics?.QCDone || 1)) * 100}%` }}></div>
-                            <div className="h-full bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]" style={{ width: `${(metrics?.QCRejected / (metrics?.QCDone || 1)) * 100}%` }}></div>
+                            <div className="h-full bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]" style={{ width: `${(0 / (1)) * 100}%` }}></div>
+                            <div className="h-full bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]" style={{ width: `${(0 / (1)) * 100}%` }}></div>
                         </div>
                         <div className="flex justify-between mt-2 text-xs text-slate-500">
                             <span>Success Rate</span>
@@ -384,16 +692,16 @@ export default function Dashboard() {
 
                     <div className="grid md:grid-cols-2 gap-8">
                         <TableCard title="Team & Scope">
-                            <MetricRow label="Brands Checked" value={metrics?.Brands || '-'} />
-                            <MetricRow label="Total Checkers" value={metrics?.Checkers} unit="Staff" />
-                            <MetricRow label="Equal Checkers" value={metrics?.CheckersEqual} unit="Staff" />
-                            <MetricRow label="Total QC Verified" value={metrics?.QCDone} unit="Pcs" highlight />
+                            <MetricRow label="Brands Checked" value={'-'} />
+                            <MetricRow label="Total Checkers" value={0} unit="Staff" />
+                            <MetricRow label="Equal Checkers" value={0} unit="Staff" />
+                            <MetricRow label="Total QC Verified" value={0} unit="Pcs" highlight />
                         </TableCard>
                         
                         <TableCard title="Defect Analysis">
-                            <MetricRow label="Correct Pieces" value={metrics?.CorrectPieces} unit="Pcs" />
-                            <MetricRow label="Rejected Pieces" value={metrics?.QCRejected} unit="Pcs" isBad />
-                            <MetricRow label="Rejection Rate" value={metrics?.QCRejectionPercent} unit="%" isBad />
+                            <MetricRow label="Correct Pieces" value={0} unit="Pcs" />
+                            <MetricRow label="Rejected Pieces" value={0} unit="Pcs" isBad />
+                            <MetricRow label="Rejection Rate" value={0} unit="%" isBad />
                         </TableCard>
                     </div>
                 </div>
@@ -412,19 +720,19 @@ export default function Dashboard() {
                     <div className="grid md:grid-cols-3 gap-6">
                         <BigCard 
                             label="Total Boxes Checked" 
-                            value={metrics?.BoxesChecked} 
+                            value={0} 
                             icon={<Box size={32}/>}
                             color="blue" 
                         />
                         <BigCard 
                             label="Rejected Pieces" 
-                            value={metrics?.EqualRejected} 
+                            value={0} 
                             icon={<AlertTriangle size={32}/>}
                             color="red" 
                         />
                         <BigCard 
                             label="Ready for Packing" 
-                            value={metrics?.EqualPacking} 
+                            value={0} 
                             icon={<Package size={32}/>}
                             color="green" 
                         />
@@ -433,7 +741,7 @@ export default function Dashboard() {
                     <div className="p-4 bg-slate-900/30 border border-slate-700 rounded-xl text-center">
                         <p className="text-sm text-slate-400">
                             The Equal Team ensures final packaging standards. <br/>
-                            <span className="text-white font-bold">{metrics?.EqualPacking || 0}</span> units are cleared for dispatch today.
+                            <span className="text-white font-bold">{0}</span> units are cleared for dispatch today.
                         </p>
                     </div>
                 </div>
@@ -444,7 +752,7 @@ export default function Dashboard() {
       
       {/* --- FOOTER --- */}
       <footer className="relative z-10 py-6 text-center text-[10px] text-slate-600 font-medium uppercase tracking-widest mt-auto">
-         © 2025 Sol France. All rights reserved.
+         © {new Date().getFullYear()} Sol France. All rights reserved.
       </footer>
     </div>
   );
