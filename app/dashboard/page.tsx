@@ -10,7 +10,7 @@ import html2canvas from 'html2canvas';
 export default function Dashboard() {
 
     const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('production');
+  const [activeTab, setActiveTab] = useState('attendance');
   const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
   const [attendanceSection, setAttendanceSection] = useState<'basements' | 'firstFloor' | 'quality' | 'packaging' | null>(null);
   const [generatingPDF, setGeneratingPDF] = useState(false);
