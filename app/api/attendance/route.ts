@@ -323,6 +323,8 @@ export async function GET() {
     console.log('  🔧 First Floor Gummers: (1ST FLOOR or GROUND FLOOR) location + GUMMER designation');
     console.log('  ✅ Quality: Any location + CHECKER designation');
     console.log('  📦 Packing: Any location + Packing related designation');
+  console.log('  🧵 Filter Maker: Any location + designation contains "FILTER MAKER"');
+  console.log('  📂 Filter Folder: Any location + designation contains "FILTER FOLDER"');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
     
     const counts = {
@@ -360,7 +362,15 @@ export async function GET() {
       
       packingTotal: 0,
       packingPresent: 0,
-      packingAbsent: 0
+      packingAbsent: 0,
+
+      filterMakerTotal: 0,
+      filterMakerPresent: 0,
+      filterMakerAbsent: 0,
+
+      filterFolderTotal: 0,
+      filterFolderPresent: 0,
+      filterFolderAbsent: 0
     };
     
     let processedCount = 0;
@@ -378,7 +388,9 @@ export async function GET() {
       filter: [] as string[],
       management: [] as string[],
       quality: [] as string[],
-      packing: [] as string[]
+      packing: [] as string[],
+      filterMaker: [] as string[],
+      filterFolder: [] as string[]
     };
     
     data.forEach((row: any, index: number) => {
@@ -511,6 +523,22 @@ export async function GET() {
         if (isPresent) counts.packingPresent++;
         if (isAbsent) counts.packingAbsent++;
       }
+
+      // ✅ FILTER MAKER SECTION
+      if (designation.includes('FILTER MAKER')) {
+        counts.filterMakerTotal++;
+        matchedEmployees.filterMaker.push(`${empName} (${status})`);
+        if (isPresent) counts.filterMakerPresent++;
+        if (isAbsent) counts.filterMakerAbsent++;
+      }
+
+      // ✅ FILTER FOLDER SECTION
+      if (designation.includes('FILTER FOLDER')) {
+        counts.filterFolderTotal++;
+        matchedEmployees.filterFolder.push(`${empName} (${status})`);
+        if (isPresent) counts.filterFolderPresent++;
+        if (isAbsent) counts.filterFolderAbsent++;
+      }
     });
     
     console.log('\n✅ Processing complete!');
@@ -592,6 +620,20 @@ export async function GET() {
     if (matchedEmployees.packing.length > 0) {
       console.log('     Sample:', matchedEmployees.packing.slice(0, 5).join(', '));
     }
+
+    console.log('\n🧵 FILTER MAKER SECTION:');
+    console.log('  → Filter Makers (Designation contains "FILTER MAKER"):', matchedEmployees.filterMaker.length, 'employees');
+    console.log('     Total:', counts.filterMakerTotal, '| Present:', counts.filterMakerPresent, '| Absent:', counts.filterMakerAbsent);
+    if (matchedEmployees.filterMaker.length > 0) {
+      console.log('     Sample:', matchedEmployees.filterMaker.slice(0, 5).join(', '));
+    }
+
+    console.log('\n📂 FILTER FOLDER SECTION:');
+    console.log('  → Filter Folders (Designation contains "FILTER FOLDER"):', matchedEmployees.filterFolder.length, 'employees');
+    console.log('     Total:', counts.filterFolderTotal, '| Present:', counts.filterFolderPresent, '| Absent:', counts.filterFolderAbsent);
+    if (matchedEmployees.filterFolder.length > 0) {
+      console.log('     Sample:', matchedEmployees.filterFolder.slice(0, 5).join(', '));
+    }
     
     console.log('\n📊 FINAL COUNTS (ALL DATA):');
     console.log(JSON.stringify(counts, null, 2));
@@ -612,6 +654,13 @@ export async function GET() {
     console.log('   • Checkers Present:', counts.qualityPresent, '/', counts.qualityTotal, 'total');
     console.log('');
     console.log('📍 PACKING SECTION:');
+    console.log('   • Manpower Present:', counts.packingPresent, '/', counts.packingTotal, 'total');
+    console.log('');
+    console.log('📍 FILTER MAKER SECTION:');
+    console.log('   • Makers Present:', counts.filterMakerPresent, '/', counts.filterMakerTotal, 'total');
+    console.log('');
+    console.log('📍 FILTER FOLDER SECTION:');
+    console.log('   • Folders Present:', counts.filterFolderPresent, '/', counts.filterFolderTotal, 'total');
     console.log('   • Manpower Present:', counts.packingPresent, '/', counts.packingTotal, 'total');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     

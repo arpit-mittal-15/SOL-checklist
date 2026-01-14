@@ -12,11 +12,14 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('attendance');
   const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
-  const [attendanceSection, setAttendanceSection] = useState<'basements' | 'firstFloor' | 'quality' | 'packaging' | null>(null);
+  const [attendanceSection, setAttendanceSection] = useState<'basement' | 'firstFloor' | 'quality' | 'packaging' | 'filter' | null>(null);
   const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [generatingTotalPDF, setGeneratingTotalPDF] = useState(false);
   const [attendanceData, setAttendanceData] = useState<any>(null);
   const [lastUpdated, setLastUpdated] = useState<string>('');
   const contentRef = useRef<HTMLDivElement>(null);
+  const attendanceButtonRef = useRef<HTMLButtonElement>(null);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
     async function fetchAttendance() {
@@ -43,6 +46,17 @@ export default function Dashboard() {
     }
     fetchAttendance();
   }, []);
+
+  // Calculate dropdown position when it opens
+  useEffect(() => {
+    if (showAttendanceDropdown && attendanceButtonRef.current) {
+      const rect = attendanceButtonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 8,
+        left: rect.left + window.scrollX
+      });
+    }
+  }, [showAttendanceDropdown]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -83,10 +97,11 @@ export default function Dashboard() {
       const pdf = new jsPDF('p', 'mm', 'a4');
       
       const sectionName = 
-        attendanceSection === 'basements' ? 'Basements' :
+        attendanceSection === 'basement' ? 'Basement' :
         attendanceSection === 'firstFloor' ? 'First Floor' :
         attendanceSection === 'quality' ? 'Quality' :
-        'Packaging';
+        attendanceSection === 'packaging' ? 'Packaging' :
+        'Filter';
       
       const date = new Date().toLocaleDateString('en-IN');
       
@@ -114,6 +129,152 @@ export default function Dashboard() {
       }
     } finally {
       setGeneratingPDF(false);
+    }
+  };
+
+  // PDF for Total Attendance (all sections)
+  const handleDownloadTotalAttendancePDF = async () => {
+    if (!attendanceData) {
+      console.warn('No attendance data available for total attendance PDF generation');
+      return;
+    }
+
+    setGeneratingTotalPDF(true);
+
+    try {
+      const { default: jsPDF } = await import('jspdf');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+
+      const date = new Date().toLocaleDateString('en-IN');
+
+      // Header
+      pdf.setFillColor(1, 2, 54);
+      pdf.rect(0, 0, 210, 40, 'F');
+      pdf.setFontSize(24);
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('SOL FRANCE', 20, 18);
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text('Total Attendance Summary', 20, 30);
+
+      pdf.setFontSize(16);
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Total Attendance Report', 20, 55);
+
+      let yPos = 70;
+
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(1, 2, 54);
+      pdf.text('Date of Report', 20, yPos);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(date, 70, yPos);
+      yPos += 12;
+
+      // Calculate total employees present and absent
+      const totalPresent = 
+        (attendanceData?.basementRollersPresent || 0) +
+        (attendanceData?.basementfilterPresent || 0) +
+        (attendanceData?.basementSupervisorPresent || 0) +
+        (attendanceData?.firstFloorRollersPresent || 0) +
+        (attendanceData?.firstFloorfilterPresent || 0) +
+        (attendanceData?.firstFloorSupervisorPresent || 0) +
+        (attendanceData?.qualityPresent || 0) +
+        (attendanceData?.packingPresent || 0) +
+        (attendanceData?.filterMakerPresent || 0) +
+        (attendanceData?.filterFolderPresent || 0);
+
+      const totalAbsent = 
+        (attendanceData?.basementRollersAbsent || 0) +
+        (attendanceData?.basementfilterAbsent || 0) +
+        (attendanceData?.basementSupervisorAbsent || 0) +
+        (attendanceData?.firstFloorRollersAbsent || 0) +
+        (attendanceData?.firstFloorfilterAbsent || 0) +
+        (attendanceData?.firstFloorSupervisorAbsent || 0) +
+        (attendanceData?.qualityAbsent || 0) +
+        (attendanceData?.packingAbsent || 0) +
+        (attendanceData?.filterMakerAbsent || 0) +
+        (attendanceData?.filterFolderAbsent || 0);
+
+      const totalEmployees = totalPresent + totalAbsent;
+
+      // Add Total Summary Section
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(1, 2, 54);
+      pdf.text('Total Summary', 20, yPos);
+      yPos += 8;
+      
+      drawTable(pdf, yPos, [
+        ['Total Employees', totalEmployees.toString() + ' Staff'],
+        ['Total Present', totalPresent.toString() + ' Staff'],
+        ['Total Absent', totalAbsent.toString() + ' Staff']
+      ]);
+      yPos += 40;
+
+      const addSection = (title: string, rows: string[][]) => {
+        if (yPos > 250) {
+          pdf.addPage();
+          yPos = 20;
+        }
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(1, 2, 54);
+        pdf.text(title, 20, yPos);
+        yPos += 8;
+        drawTable(pdf, yPos, rows);
+        yPos += 8 + rows.length * 8 + 8;
+      };
+
+      addSection('Basement', [
+        ['Rollers Present', `${attendanceData?.basementRollersPresent || 0} / ${attendanceData?.basementRollers || 0}`],
+        ['Gummers Present', `${attendanceData?.basementfilterPresent || 0} / ${attendanceData?.basementfilterTotal || 0}`],
+        ['Supervisors Present', `${attendanceData?.basementSupervisorPresent || 0} / ${attendanceData?.basementSupervisorTotal || 0}`],
+      ]);
+
+      addSection('First Floor', [
+        ['Rollers Present', `${attendanceData?.firstFloorRollersPresent || 0} / ${attendanceData?.firstFloorRollers || 0}`],
+        ['Gummers Present', `${attendanceData?.firstFloorfilterPresent || 0} / ${attendanceData?.firstFloorfilterTotal || 0}`],
+        ['Supervisors Present', `${attendanceData?.firstFloorSupervisorPresent || 0} / ${attendanceData?.firstFloorSupervisorTotal || 0}`],
+      ]);
+
+      addSection('Quality', [
+        ['Total Present', `${attendanceData?.qualityPresent || 0} / ${attendanceData?.qualityTotal || 0}`],
+      ]);
+
+      addSection('Packing', [
+        ['Total Present', `${attendanceData?.packingPresent || 0} / ${attendanceData?.packingTotal || 0}`],
+      ]);
+
+      addSection('Filter', [
+        ['Filter Maker Present', `${attendanceData?.filterMakerPresent || 0} / ${attendanceData?.filterMakerTotal || 0}`],
+        ['Filter Folder Present', `${attendanceData?.filterFolderPresent || 0} / ${attendanceData?.filterFolderTotal || 0}`],
+      ]);
+
+      pdf.setFontSize(8);
+      pdf.setTextColor(128, 128, 128);
+      pdf.setFont('helvetica', 'italic');
+      pdf.text(
+        `Generated on ${new Date().toLocaleString('en-IN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        })}`,
+        20,
+        280
+      );
+      pdf.text(`© ${new Date().getFullYear()} Sol France. All rights reserved.`, 20, 285);
+
+      const fileName = `Attendance_Total_${date.replace(/\//g, '-')}.pdf`;
+      pdf.save(fileName);
+    } catch (error) {
+      console.error('Critical Total Attendance PDF error:', error);
+    } finally {
+      setGeneratingTotalPDF(false);
     }
   };
 
@@ -179,7 +340,7 @@ export default function Dashboard() {
     yPos += 15;
     
     // Attendance Details based on section
-    if (attendanceSection === 'basements') {
+    if (attendanceSection === 'basement') {
       // Roller Attendance
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(1, 2, 54);
@@ -365,6 +526,7 @@ export default function Dashboard() {
         {/* --- NAVIGATION TABS --- */}
         <div className="flex gap-2 p-1 bg-slate-900/50 rounded-xl w-full md:w-fit border border-slate-700 backdrop-blur-md overflow-x-auto">
             <button 
+                ref={attendanceButtonRef}
                 onClick={() => setShowAttendanceDropdown(!showAttendanceDropdown)}
                 className={`attendance-dropdown-container flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
                     activeTab === 'attendance' 
@@ -374,10 +536,11 @@ export default function Dashboard() {
             >
                 <UserCheck size={16}/> 
                 {activeTab === 'attendance' && attendanceSection ? (
-                    attendanceSection === 'basements' ? 'Basements' :
+                    attendanceSection === 'basement' ? 'Basement' :
                     attendanceSection === 'firstFloor' ? 'First Floor' :
                     attendanceSection === 'quality' ? 'Quality' :
-                    attendanceSection === 'packaging' ? 'Packaging' : 'Attendance'
+                    attendanceSection === 'packaging' ? 'Packaging' :
+                    attendanceSection === 'filter' ? 'Filter' : 'Attendance'
                 ) : 'Attendance'}
                 <ChevronDown size={16} className={`transition-transform duration-200 ${showAttendanceDropdown ? 'rotate-180' : ''}`} />
             </button>
@@ -401,66 +564,154 @@ export default function Dashboard() {
             />
         </div>
 
-        {/* Attendance Dropdown Dialog - Floating Above Everything */}
+        {/* Professional Attendance Dropdown Menu - Fixed Position */}
         {showAttendanceDropdown && (
-            <div className="attendance-dropdown-menu fixed top-[180px] left-4 md:left-8 bg-slate-800/95 backdrop-blur-xl border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-[9999] min-w-[220px] animate-in fade-in slide-in-from-top-4 duration-200">
-                <button 
-                    onClick={() => {
-                        setActiveTab('attendance');
-                        setAttendanceSection('basements');
-                        setShowAttendanceDropdown(false);
+            <>
+                {/* Backdrop overlay */}
+                <div 
+                    className="fixed inset-0 z-[9998] bg-black/20"
+                    onClick={() => setShowAttendanceDropdown(false)}
+                />
+                
+                {/* Dropdown Menu */}
+                <div 
+                    className="attendance-dropdown-menu fixed z-[9999] bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden min-w-[260px] animate-in fade-in slide-in-from-top-2 duration-200"
+                    style={{
+                        top: `${dropdownPosition.top}px`,
+                        left: `${dropdownPosition.left}px`,
+                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3)'
                     }}
-                    className={`w-full text-left px-5 py-3.5 text-sm font-medium transition-all border-b border-slate-700/50 ${
-                        activeTab === 'attendance' && attendanceSection === 'basements'
-                            ? 'bg-blue-600 text-white'
-                            : 'text-slate-300 hover:bg-white/10 hover:text-white'
-                    }`}
                 >
-                    Basements
-                </button>
-                <button 
-                    onClick={() => {
-                        setActiveTab('attendance');
-                        setAttendanceSection('firstFloor');
-                        setShowAttendanceDropdown(false);
-                    }}
-                    className={`w-full text-left px-5 py-3.5 text-sm font-medium transition-all border-b border-slate-700/50 ${
-                        activeTab === 'attendance' && attendanceSection === 'firstFloor'
-                            ? 'bg-blue-600 text-white'
-                            : 'text-slate-300 hover:bg-white/10 hover:text-white'
-                    }`}
-                >
-                    First Floor
-                </button>
-                <button
-                    onClick={() => {
-                        setActiveTab('attendance');
-                        setAttendanceSection('quality');
-                        setShowAttendanceDropdown(false);
-                    }}
-                    className={`w-full text-left px-5 py-3.5 text-sm font-medium transition-all border-b border-slate-700/50 ${
-                        activeTab === 'attendance' && attendanceSection === 'quality'
-                            ? 'bg-blue-600 text-white'
-                            : 'text-slate-300 hover:bg-white/10 hover:text-white'
-                    }`}
-                >
-                    Quality
-                </button>
-                <button
-                    onClick={() => {
-                        setActiveTab('attendance');
-                        setAttendanceSection('packaging');
-                        setShowAttendanceDropdown(false);
-                    }}
-                    className={`w-full text-left px-5 py-3.5 text-sm font-medium transition-all ${
-                        activeTab === 'attendance' && attendanceSection === 'packaging'
-                            ? 'bg-blue-600 text-white'
-                            : 'text-slate-300 hover:bg-white/10 hover:text-white'
-                    }`}
-                >
-                    Packaging
-                </button>
-            </div>
+                    {/* Header */}
+                    <div className="px-5 py-3.5 border-b border-slate-700/50 bg-gradient-to-r from-blue-600/10 to-purple-600/10">
+                        <div className="flex items-center gap-2">
+                            <UserCheck size={18} className="text-blue-400" />
+                            <span className="text-sm font-bold text-slate-200 uppercase tracking-wider">Attendance Sections</span>
+                        </div>
+                    </div>
+
+                    {/* Menu Items */}
+                    <div className="py-2">
+                        <button 
+                            onClick={() => {
+                                setActiveTab('attendance');
+                                setAttendanceSection('basement');
+                                setShowAttendanceDropdown(false);
+                            }}
+                            className={`w-full text-left px-5 py-3.5 text-sm font-medium transition-all flex items-center gap-3 group ${
+                                activeTab === 'attendance' && attendanceSection === 'basement'
+                                    ? 'bg-blue-600/20 text-blue-300 border-l-2 border-blue-500'
+                                    : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                            }`}
+                        >
+                            <div className={`w-2 h-2 rounded-full transition-all ${
+                                activeTab === 'attendance' && attendanceSection === 'basement'
+                                    ? 'bg-blue-400 shadow-lg shadow-blue-400/50'
+                                    : 'bg-slate-600 group-hover:bg-slate-500'
+                            }`} />
+                            <span>Basement</span>
+                        </button>
+                        
+                        <button 
+                            onClick={() => {
+                                setActiveTab('attendance');
+                                setAttendanceSection('firstFloor');
+                                setShowAttendanceDropdown(false);
+                            }}
+                            className={`w-full text-left px-5 py-3.5 text-sm font-medium transition-all flex items-center gap-3 group ${
+                                activeTab === 'attendance' && attendanceSection === 'firstFloor'
+                                    ? 'bg-blue-600/20 text-blue-300 border-l-2 border-blue-500'
+                                    : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                            }`}
+                        >
+                            <div className={`w-2 h-2 rounded-full transition-all ${
+                                activeTab === 'attendance' && attendanceSection === 'firstFloor'
+                                    ? 'bg-blue-400 shadow-lg shadow-blue-400/50'
+                                    : 'bg-slate-600 group-hover:bg-slate-500'
+                            }`} />
+                            <span>First Floor</span>
+                        </button>
+                        
+                        <button
+                            onClick={() => {
+                                setActiveTab('attendance');
+                                setAttendanceSection('quality');
+                                setShowAttendanceDropdown(false);
+                            }}
+                            className={`w-full text-left px-5 py-3.5 text-sm font-medium transition-all flex items-center gap-3 group ${
+                                activeTab === 'attendance' && attendanceSection === 'quality'
+                                    ? 'bg-blue-600/20 text-blue-300 border-l-2 border-blue-500'
+                                    : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                            }`}
+                        >
+                            <div className={`w-2 h-2 rounded-full transition-all ${
+                                activeTab === 'attendance' && attendanceSection === 'quality'
+                                    ? 'bg-blue-400 shadow-lg shadow-blue-400/50'
+                                    : 'bg-slate-600 group-hover:bg-slate-500'
+                            }`} />
+                            <span>Quality</span>
+                        </button>
+                        
+                        <button
+                            onClick={() => {
+                                setActiveTab('attendance');
+                                setAttendanceSection('packaging');
+                                setShowAttendanceDropdown(false);
+                            }}
+                            className={`w-full text-left px-5 py-3.5 text-sm font-medium transition-all flex items-center gap-3 group ${
+                                activeTab === 'attendance' && attendanceSection === 'packaging'
+                                    ? 'bg-blue-600/20 text-blue-300 border-l-2 border-blue-500'
+                                    : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                            }`}
+                        >
+                            <div className={`w-2 h-2 rounded-full transition-all ${
+                                activeTab === 'attendance' && attendanceSection === 'packaging'
+                                    ? 'bg-blue-400 shadow-lg shadow-blue-400/50'
+                                    : 'bg-slate-600 group-hover:bg-slate-500'
+                            }`} />
+                            <span>Packaging</span>
+                        </button>
+                        
+                        <button
+                            onClick={() => {
+                                setActiveTab('attendance');
+                                setAttendanceSection('filter');
+                                setShowAttendanceDropdown(false);
+                            }}
+                            className={`w-full text-left px-5 py-3.5 text-sm font-medium transition-all flex items-center gap-3 group ${
+                                activeTab === 'attendance' && attendanceSection === 'filter'
+                                    ? 'bg-blue-600/20 text-blue-300 border-l-2 border-blue-500'
+                                    : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                            }`}
+                        >
+                            <div className={`w-2 h-2 rounded-full transition-all ${
+                                activeTab === 'attendance' && attendanceSection === 'filter'
+                                    ? 'bg-blue-400 shadow-lg shadow-blue-400/50'
+                                    : 'bg-slate-600 group-hover:bg-slate-500'
+                            }`} />
+                            <span>Filter</span>
+                        </button>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="border-t border-slate-700/50 my-2" />
+
+                    {/* Download Total Button */}
+                    <div className="px-2 pb-2">
+                        <button
+                            onClick={() => {
+                                handleDownloadTotalAttendancePDF();
+                                setShowAttendanceDropdown(false);
+                            }}
+                            disabled={generatingTotalPDF || !attendanceData}
+                            className="w-full px-5 py-3.5 text-sm font-bold transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-green-600/20 to-emerald-600/20 hover:from-green-600/30 hover:to-emerald-600/30 text-green-400 hover:text-green-300 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg border border-green-600/30 hover:border-green-500/50 shadow-lg shadow-green-900/20"
+                        >
+                            <Download size={16} />
+                            {generatingTotalPDF ? 'Generating...' : 'Download Total Attendance'}
+                        </button>
+                    </div>
+                </div>
+            </>
         )}
 
         {/* --- MAIN CONTENT AREA --- */}
@@ -485,13 +736,13 @@ export default function Dashboard() {
                     {/* Content Wrapper for PDF */}
                     <div ref={contentRef}>
                         {/* Basements Section */}
-                        {attendanceSection === 'basements' && (
+                        {attendanceSection === 'basement' && (
                             <>
                                 {/* Header with Download Button */}
                                 <div className="flex items-center justify-between border-b border-slate-700 pb-4 mb-8">
                                     <div className="flex items-center gap-3">
                                         <div className="bg-purple-500/20 p-2 rounded-lg text-purple-400"><UserCheck size={24} /></div>
-                                        <h2 className="text-2xl font-bold text-white">Attendance Report - Basements</h2>
+                                        <h2 className="text-2xl font-bold text-white">Attendance Report - Basement</h2>
                                     </div>
                                     <button
                                         onClick={handleDownloadPDF}
@@ -506,7 +757,7 @@ export default function Dashboard() {
                             <div className="grid md:grid-cols-2 gap-6">
                                 <TableCard title="Date & Department">
                                     <MetricRow label="Date of Report" value={lastUpdated || new Date().toLocaleDateString('en-IN')} />
-                                    <MetricRow label="Department" value="Basements" />
+                                    <MetricRow label="Department" value="Basement" />
                                 </TableCard>
                                 <TableCard title="Roller Attendance">
                                     <MetricRow label="Total Rollers" value={attendanceData?.basementRollers || 0} unit="Staff" />
@@ -629,6 +880,44 @@ export default function Dashboard() {
                                     <MetricRow label="Total Manpower" value={attendanceData?.packingTotal || 0} unit="Staff" />
                                     <MetricRow label="Total Present" value={attendanceData?.packingPresent || 0} unit="Staff" />
                                     <MetricRow label="Total Absent" value={attendanceData?.packingAbsent || 0} unit="Staff" isBad />
+                                </TableCard>
+                            </div>
+                        </>
+                    )}
+
+                    {/* Filter Department Section */}
+                    {attendanceSection === 'filter' && (
+                        <>
+                            {/* Header with Download Button */}
+                            <div className="flex items-center justify-between border-b border-slate-700 pb-4 mb-8">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-purple-500/20 p-2 rounded-lg text-purple-400"><UserCheck size={24} /></div>
+                                    <h2 className="text-2xl font-bold text-white">Attendance Report - Filter Department</h2>
+                                </div>
+                                <button
+                                    onClick={handleDownloadPDF}
+                                    disabled={generatingPDF}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <Download size={16} />
+                                    {generatingPDF ? 'Generating...' : 'Save as PDF'}
+                                </button>
+                            </div>
+
+                            <div className="grid md:grid-cols-2 gap-6">
+                                {/* <TableCard title="Date & Department">
+                                    <MetricRow label="Date of Report" value={lastUpdated || new Date().toLocaleDateString('en-IN')} />
+                                    <MetricRow label="Department" value="Filter Department" />
+                                </TableCard> */}
+                                <TableCard title="Filter Maker Attendance">
+                                    <MetricRow label="Total Makers" value={attendanceData?.filterMakerTotal || 0} unit="Staff" />
+                                    <MetricRow label="Present" value={attendanceData?.filterMakerPresent || 0} unit="Staff" />
+                                    <MetricRow label="Absent" value={attendanceData?.filterMakerAbsent || 0} unit="Staff" isBad />
+                                </TableCard>
+                                <TableCard title="Filter Folder Attendance">
+                                    <MetricRow label="Total Folders" value={attendanceData?.filterFolderTotal || 0} unit="Staff" />
+                                    <MetricRow label="Present" value={attendanceData?.filterFolderPresent || 0} unit="Staff" />
+                                    <MetricRow label="Absent" value={attendanceData?.filterFolderAbsent || 0} unit="Staff" isBad />
                                 </TableCard>
                             </div>
                         </>
