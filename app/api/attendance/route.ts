@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
+import fs from 'fs/promises';
+import path from 'path';
 
 export const dynamic = 'force-dynamic';
 
 const INDEX_URL =
   "https://docs.google.com/spreadsheets/d/1ec9iB8u1rLEZuL3G0nIT6mkUYWI1vSbER8GHIJEWTDU/export?format=csv";
+
+// Path where we cache the latest downloaded attendance Excel file
+const LOCAL_EXCEL_PATH = path.join(process.cwd(), 'attendance-latest.xlsx');
 
 // https://docs.google.com/spreadsheets/d/1ec9iB8u1rLEZuL3G0nIT6mkUYWI1vSbER8GHIJEWTDU/edit?usp=sharing
 async function getLatestFileId() {
@@ -62,65 +67,7 @@ async function getLatestFileId() {
   return latest?.fileId;
 }
 
-async function fetchLatestAttendance() {
-  const fileId = await getLatestFileId();
-  if (!fileId) {
-    console.error('❌ No synced file found in index!');
-    throw new Error("No synced file found");
-  }
-
-  console.log('\n📥 Step 2: Downloading Excel file from Google Drive...');
-  console.log('File ID:', fileId);
-  
-  // Try multiple download URL formats
-  const downloadUrls = [
-    `https://drive.google.com/uc?export=download&id=${fileId}`,
-    `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
-    `https://drive.google.com/u/0/uc?id=${fileId}&export=download`,
-  ];
-  
-  let res: Response | null = null;
-  let lastError: string = '';
-  
-  for (let i = 0; i < downloadUrls.length; i++) {
-    const url = downloadUrls[i];
-    console.log(`\nTrying download URL ${i + 1}/${downloadUrls.length}:`, url);
-    
-    try {
-      const response = await fetch(url, { 
-        cache: "no-store",
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-      
-      console.log(`  Response status: ${response.status}`);
-      console.log(`  Response headers:`, Object.fromEntries(response.headers.entries()));
-      
-      if (response.ok) {
-        res = response;
-        console.log(`  ✅ Success with URL ${i + 1}`);
-        break;
-      } else {
-        const text = await response.text();
-        console.log(`  ❌ Failed, body preview:`, text.substring(0, 200));
-        lastError = `Status ${response.status}: ${text.substring(0, 100)}`;
-      }
-    } catch (err: any) {
-      console.log(`  ❌ Fetch error:`, err.message);
-      lastError = err.message;
-    }
-  }
-  
-  if (!res) {
-    console.error('❌ All download URLs failed!');
-    console.error('Last error:', lastError);
-    throw new Error(`Cannot download file from Google Drive. Make sure the file is publicly accessible (Anyone with the link can view). Last error: ${lastError}`);
-  }
-
-  const buffer = await res.arrayBuffer();
-  console.log('✅ File downloaded, size:', buffer.byteLength, 'bytes');
-
+async function parseAttendanceFromBuffer(buffer: ArrayBuffer | Buffer) {
   console.log('\n📖 Step 3: Reading Excel workbook...');
   const workbook = XLSX.read(buffer);
   console.log('Available sheets:', workbook.SheetNames);
@@ -131,33 +78,155 @@ async function fetchLatestAttendance() {
   const sheetRange = sheet['!ref'];
   console.log('Sheet range:', sheetRange);
   
-  // Try to see raw cell data
-  console.log('\n🔍 Raw sheet structure (first few cells):');
-  ['A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1', 'H1', 'I1', 'J1'].forEach(cellRef => {
-    if (sheet[cellRef]) {
-      console.log(`  ${cellRef}:`, sheet[cellRef].v || sheet[cellRef].w || sheet[cellRef]);
+  // First, read without headers to find the header row
+  console.log('\n🔍 Searching for header row containing "EmployeeCode"...');
+  const rawData = XLSX.utils.sheet_to_json(sheet, {
+    header: 1, // Use array of arrays instead of objects
+    defval: "",
+    raw: false
+  }) as any[][];
+  
+  console.log('Total raw rows found:', rawData.length);
+  
+  // Find the row index that contains "EmployeeCode"
+  let headerRowIndex = -1;
+  for (let i = 0; i < Math.min(20, rawData.length); i++) {
+    const row = rawData[i];
+    const rowString = JSON.stringify(row).toUpperCase();
+    if (rowString.includes('EMPLOYEECODE')) {
+      headerRowIndex = i;
+      console.log(`✅ Found header row at index ${i}:`, row);
+      break;
     }
-  });
+  }
+  
+  if (headerRowIndex === -1) {
+    console.error('❌ Could not find header row with "EmployeeCode"');
+    console.error('First 10 rows:', rawData.slice(0, 10));
+    throw new Error('Header row with "EmployeeCode" not found in Excel file');
+  }
+  
+  // Now parse again starting from the header row
+  console.log(`\n📋 Parsing data starting from row ${headerRowIndex + 1}...`);
+  
+  // Adjust the sheet range to start from the header row
+  const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1');
+  range.s.r = headerRowIndex; // Start from header row
   
   const jsonData = XLSX.utils.sheet_to_json(sheet, {
-  defval: "",
-  raw: false
-});
+    range: headerRowIndex,
+    defval: "",
+    raw: false
+  });
   
   console.log('\n✅ Sheet converted to JSON');
-  console.log('Total rows:', jsonData.length);
+  console.log('Total data rows (after header):', jsonData.length);
   
   if (jsonData.length > 0) {
     const firstRow = jsonData[0] as Record<string, any>;
-    console.log('\n📋 First row keys:', Object.keys(firstRow));
-    console.log('📋 First row values:', Object.values(firstRow));
-    console.log('\n📋 First 3 rows (full):');
+    console.log('\n📋 First data row keys:', Object.keys(firstRow));
+    console.log('📋 First data row values:', Object.values(firstRow));
+    console.log('\n📋 First 3 data rows (full):');
     jsonData.slice(0, 3).forEach((row, i) => {
       console.log(`  Row ${i + 1}:`, JSON.stringify(row, null, 2));
     });
   }
 
   return jsonData;
+}
+
+async function fetchLatestAttendance() {
+  let buffer: ArrayBuffer | Buffer | null = null;
+  let lastError = '';
+
+  try {
+    const fileId = await getLatestFileId();
+    if (!fileId) {
+      console.error('❌ No synced file found in index! Will try local cached file if available.');
+      lastError = 'No synced file found in index';
+    } else {
+      console.log('\n📥 Step 2: Downloading Excel file from Google Drive...');
+      console.log('File ID:', fileId);
+      
+      // Try multiple download URL formats
+      const downloadUrls = [
+        `https://drive.google.com/uc?export=download&id=${fileId}`,
+        `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+        `https://drive.google.com/u/0/uc?id=${fileId}&export=download`,
+      ];
+      
+      let res: Response | null = null;
+      
+      for (let i = 0; i < downloadUrls.length; i++) {
+        const url = downloadUrls[i];
+        console.log(`\nTrying download URL ${i + 1}/${downloadUrls.length}:`, url);
+        
+        try {
+          const response = await fetch(url, { 
+            cache: "no-store",
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+          });
+          
+          console.log(`  Response status: ${response.status}`);
+          console.log(`  Response headers:`, Object.fromEntries(response.headers.entries()));
+          
+          if (response.ok) {
+            res = response;
+            console.log(`  ✅ Success with URL ${i + 1}`);
+            break;
+          } else {
+            const text = await response.text();
+            console.log(`  ❌ Failed, body preview:`, text.substring(0, 200));
+            lastError = `Status ${response.status}: ${text.substring(0, 100)}`;
+          }
+        } catch (err: any) {
+          console.log(`  ❌ Fetch error:`, err.message);
+          lastError = err.message;
+        }
+      }
+      
+      if (res) {
+        const arrBuf = await res.arrayBuffer();
+        buffer = arrBuf;
+        console.log('✅ File downloaded from Drive, size:', arrBuf.byteLength, 'bytes');
+
+        // Try to cache the file locally in the project root
+        try {
+          console.log('\n💾 Caching Excel file to project root at:', LOCAL_EXCEL_PATH);
+          await fs.writeFile(LOCAL_EXCEL_PATH, Buffer.from(arrBuf));
+          console.log('✅ Excel file cached successfully.');
+        } catch (writeErr: any) {
+          console.error('⚠️ Failed to cache Excel file locally:', writeErr.message);
+        }
+      } else {
+        console.error('❌ All download URLs failed. Will attempt to read from local cached file.');
+      }
+    }
+  } catch (err: any) {
+    console.error('❌ Unexpected error while fetching from Drive:', err.message);
+    lastError = err.message;
+  }
+
+  // If we don't have a buffer from Drive, fall back to local cached file
+  if (!buffer) {
+    try {
+      console.log('\n📂 Attempting to read cached Excel file from project root...');
+      const localBuffer = await fs.readFile(LOCAL_EXCEL_PATH);
+      buffer = localBuffer;
+      console.log('✅ Successfully loaded cached Excel file from:', LOCAL_EXCEL_PATH);
+    } catch (readErr: any) {
+      console.error('❌ Failed to read cached Excel file from project root:', readErr.message);
+      throw new Error(
+        `Cannot download file from Google Drive and no cached file found in project root. ` +
+        `Last Drive error: ${lastError || 'Unknown error'}; Local read error: ${readErr.message}`
+      );
+    }
+  }
+
+  // At this point we have a buffer (either from Drive or local cache)
+  return parseAttendanceFromBuffer(buffer);
 }
 
 export async function GET() {
