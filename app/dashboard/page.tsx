@@ -120,7 +120,7 @@ export default function Dashboard() {
   // Helper function to generate text-based PDF with proper tables
   const generateTextPDF = (pdf: any, sectionName: string, date: string) => {
     // Header with logo area
-    pdf.setFillColor(37, 99, 235);
+    pdf.setFillColor(1, 2, 54);
     pdf.rect(0, 0, 210, 40, 'F');
     
     pdf.setFontSize(24);
@@ -143,7 +143,7 @@ export default function Dashboard() {
     // Date & Department Section
     pdf.setFontSize(12);
     pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(37, 99, 235);
+    pdf.setTextColor(1, 2, 54);
     pdf.text('Date & Department', 20, yPos);
     yPos += 8;
     
@@ -182,7 +182,7 @@ export default function Dashboard() {
     if (attendanceSection === 'basements') {
       // Roller Attendance
       pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(37, 99, 235);
+      pdf.setTextColor(1, 2, 54);
       pdf.text('Roller Attendance', 20, yPos);
       yPos += 8;
       
@@ -191,11 +191,11 @@ export default function Dashboard() {
         ['Roller Present', (attendanceData?.basementRollersPresent || 0).toString() + ' Staff'],
         ['Roller Absent', (attendanceData?.basementRollersAbsent || 0).toString() + ' Staff']
       ]);
-      yPos += 32;
+      yPos += 40; // Increased spacing to prevent overlap
       
       // Gummer Attendance
       pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(37, 99, 235);
+      pdf.setTextColor(1, 2, 54);
       pdf.text('Gummer Attendance', 20, yPos);
       yPos += 8;
       
@@ -204,11 +204,11 @@ export default function Dashboard() {
         ['Gummer Present', (attendanceData?.basementfilterPresent || 0).toString() + ' Staff'],
         ['Gummer Absent', (attendanceData?.basementfilterAbsent || 0).toString() + ' Staff']
       ]);
-      yPos += 32;
+      yPos += 40; // Increased spacing to prevent overlap
       
       // Supervisor Attendance
       pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(37, 99, 235);
+      pdf.setTextColor(1, 2, 54);
       pdf.text('Supervisor Attendance', 20, yPos);
       yPos += 8;
       
@@ -220,7 +220,7 @@ export default function Dashboard() {
     } else if (attendanceSection === 'firstFloor') {
       // Roller Attendance
       pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(37, 99, 235);
+      pdf.setTextColor(1, 2, 54);
       pdf.text('Roller Attendance', 20, yPos);
       yPos += 8;
       
@@ -229,11 +229,11 @@ export default function Dashboard() {
         ['Roller Present', (attendanceData?.firstFloorRollersPresent || 0).toString() + ' Staff'],
         ['Roller Absent', (attendanceData?.firstFloorRollersAbsent || 0).toString() + ' Staff']
       ]);
-      yPos += 32;
+      yPos += 40; // Increased spacing to prevent overlap
       
       // Gummer Attendance
       pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(37, 99, 235);
+      pdf.setTextColor(1, 2, 54);
       pdf.text('Gummer Attendance', 20, yPos);
       yPos += 8;
       
@@ -242,11 +242,11 @@ export default function Dashboard() {
         ['Gummer Present', (attendanceData?.firstFloorfilterPresent || 0).toString() + ' Staff'],
         ['Gummer Absent', (attendanceData?.firstFloorfilterAbsent || 0).toString() + ' Staff']
       ]);
-      yPos += 32;
+      yPos += 40; // Increased spacing to prevent overlap
       
       // Supervisor Attendance
       pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(37, 99, 235);
+      pdf.setTextColor(1, 2, 54);
       pdf.text('Supervisor Attendance', 20, yPos);
       yPos += 8;
       
@@ -258,7 +258,7 @@ export default function Dashboard() {
     } else if (attendanceSection === 'quality') {
       // Checker Attendance
       pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(37, 99, 235);
+      pdf.setTextColor(1, 2, 54);
       pdf.text('Checker Attendance', 20, yPos);
       yPos += 8;
       
@@ -271,7 +271,7 @@ export default function Dashboard() {
     } else if (attendanceSection === 'packaging') {
       // Manpower Attendance
       pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(37, 99, 235);
+      pdf.setTextColor(1, 2, 54);
       pdf.text('Manpower Attendance', 20, yPos);
       yPos += 8;
       
@@ -286,7 +286,18 @@ export default function Dashboard() {
     pdf.setFontSize(8);
     pdf.setTextColor(128, 128, 128);
     pdf.setFont('helvetica', 'italic');
-    pdf.text(`Generated on ${new Date().toLocaleString('en-IN')}`, 20, 280);
+    pdf.text(
+    `Generated on ${new Date().toLocaleString('en-IN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+    })}`,
+    20,
+    280
+    );
     pdf.text(`© ${new Date().getFullYear()} Sol France. All rights reserved.`, 20, 285);
   };
   
