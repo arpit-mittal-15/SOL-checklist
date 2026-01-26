@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
-import { ArrowLeft, BarChart3, Database, CheckCircle2, MailCheck, Package, Users, Activity, Box, AlertTriangle, ChevronDown, UserCheck, Download } from 'lucide-react';
+import { ArrowLeft, BarChart3, Database, CheckCircle2, MailCheck, Package, Users, Activity, Box, AlertTriangle, ChevronDown, UserCheck, Download, X, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import TechLoader from '@/components/TechLoader'; // Import new loader
 import html2canvas from 'html2canvas';
@@ -21,6 +21,7 @@ export default function Dashboard() {
   const attendanceButtonRef = useRef<HTMLButtonElement>(null);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const[filedate, setFileDate] = useState('')
+  const [emailNotification, setEmailNotification] = useState<{ show: boolean; type: 'loading' | 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
     async function fetchAttendance() {
@@ -288,10 +289,34 @@ export default function Dashboard() {
 
   const email = 'sakshamsriv09@gmail.com';
 
-  const sendEmailHandler = () => {
-      const url = "https://docs.google.com/spreadsheets/d/1nCeM9jtXEfm7fHsHnLVJugxmJU-TirWlAcDPFzEawkM/export?format=csv";
-    //   window.open(`mailto:?subject=Excel File&body=Download here: ${email}`);
-    window.open('https://mail.google.com/mail/u/0/?tab=rm&ogbl#inbox?compose=new')
+  const sendEmailHandler = async () => {
+    // Show loading state immediately
+    setEmailNotification({ show: true, type: 'loading', message: 'Sending email...' });
+    
+    try {
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      const result = await response.json();
+      if (result.success) {
+        setEmailNotification({ show: true, type: 'success', message: 'Email sent successfully!' });
+      } else {
+        setEmailNotification({ show: true, type: 'error', message: 'Failed to send email.' });
+      }
+      // Auto-hide notification after 4 seconds
+      setTimeout(() => {
+        setEmailNotification(null);
+      }, 4000);
+    } catch (error) {
+      console.error('Error sending email:', error);
+      setEmailNotification({ show: true, type: 'error', message: 'Error sending email. Please try again.' });
+      setTimeout(() => {
+        setEmailNotification(null);
+      }, 4000);
+    }
   };
 
   // Helper function to generate text-based PDF with proper tables
@@ -1122,6 +1147,63 @@ export default function Dashboard() {
       <footer className="relative z-10 py-6 text-center text-[10px] text-slate-600 font-medium uppercase tracking-widest mt-auto">
          © {new Date().getFullYear()} Sol France. All rights reserved.
       </footer>
+
+      {/* --- EMAIL NOTIFICATION CARD --- */}
+      {emailNotification && (
+        <div className="fixed bottom-6 left-6 z-[10000] animate-in fade-in slide-in-from-left-4 duration-300">
+          <div className={`min-w-[320px] max-w-md rounded-2xl border backdrop-blur-xl shadow-2xl overflow-hidden ${
+            emailNotification.type === 'loading'
+              ? 'bg-blue-900/30 border-blue-500/50 shadow-blue-900/30'
+              : emailNotification.type === 'success' 
+              ? 'bg-green-900/30 border-green-500/50 shadow-green-900/30' 
+              : 'bg-red-900/30 border-red-500/50 shadow-red-900/30'
+          }`}>
+            <div className="p-4 flex items-start gap-3">
+              <div className={`flex-shrink-0 p-2 rounded-lg ${
+                emailNotification.type === 'loading'
+                  ? 'bg-blue-500/20 text-blue-400'
+                  : emailNotification.type === 'success' 
+                  ? 'bg-green-500/20 text-green-400' 
+                  : 'bg-red-500/20 text-red-400'
+              }`}>
+                {emailNotification.type === 'loading' ? (
+                  <Loader2 size={20} className="animate-spin" />
+                ) : emailNotification.type === 'success' ? (
+                  <CheckCircle size={20} />
+                ) : (
+                  <XCircle size={20} />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm font-bold ${
+                  emailNotification.type === 'loading'
+                    ? 'text-blue-300'
+                    : emailNotification.type === 'success' 
+                    ? 'text-green-300' 
+                    : 'text-red-300'
+                }`}>
+                  {emailNotification.type === 'loading'
+                    ? 'Sending Email'
+                    : emailNotification.type === 'success' 
+                    ? 'Success' 
+                    : 'Error'}
+                </p>
+                <p className="text-xs text-slate-300 mt-1">
+                  {emailNotification.message}
+                </p>
+              </div>
+              {emailNotification.type !== 'loading' && (
+                <button
+                  onClick={() => setEmailNotification(null)}
+                  className="flex-shrink-0 p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
