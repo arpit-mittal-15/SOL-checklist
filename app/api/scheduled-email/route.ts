@@ -4,8 +4,8 @@ import path from 'path';
 import jsPDF from 'jspdf';
 
 const SCHEDULED_EMAILS = ["suckzhum@gmail.com", "braj@thesolfactory.com", "pukhraj.lp@gmail.com"];
-const SCHEDULE_TIME_HOUR = 15; // 3:50 PM in 24-hour format
-const SCHEDULE_TIME_MINUTE = 50;
+const SCHEDULE_TIME_HOUR = 15; // 3:55 PM in 24-hour format
+const SCHEDULE_TIME_MINUTE = 55;
 
 // Path to store the last sent date
 const LAST_SENT_FILE = path.join(process.cwd(), '.last-scheduled-email-sent');
@@ -246,6 +246,13 @@ async function generateTotalAttendancePDF(attendanceData: any, date: string): Pr
 
 async function sendScheduledEmail() {
   try {
+    const emailUser = process.env.EMAIL_USER;
+    const emailPass = process.env.EMAIL_PASS;
+
+    if (!emailUser || !emailPass) {
+      throw new Error('EMAIL_USER and EMAIL_PASS environment variables are required');
+    }
+
     console.log('📊 Fetching attendance data for scheduled email...');
     const attendanceInfo = await fetchAttendanceData();
     const attendanceData = attendanceInfo.attendance;
@@ -257,8 +264,8 @@ async function sendScheduledEmail() {
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+        user: emailUser,
+        pass: emailPass
       }
     });
 
@@ -267,7 +274,7 @@ async function sendScheduledEmail() {
     const emailRecipients = SCHEDULED_EMAILS.join(', ');
 
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: emailUser,
       to: SCHEDULED_EMAILS,
       subject: `Daily Attendance Report - ${filedate}`,
       text: `This is the automated daily attendance report for ${filedate}.\n\nAttached is the Total Attendance PDF Report.`,
@@ -295,7 +302,7 @@ export async function GET(request: Request) {
     const currentMinute = istDate.getMinutes();
     const todayDate = formatDate(istDate);
     
-    // Check if it's the scheduled time (3:50 PM IST)
+    // Check if it's the scheduled time (3:55 PM IST)
     const isScheduledTime = currentHour === SCHEDULE_TIME_HOUR && currentMinute === SCHEDULE_TIME_MINUTE;
     
     // Check if email was already sent today

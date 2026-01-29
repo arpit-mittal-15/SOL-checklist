@@ -15,11 +15,21 @@ export async function POST(request: Request) {
       );
     }
 
+    const emailUser = process.env.EMAIL_USER;
+    const emailPass = process.env.EMAIL_PASS;
+
+    if (!emailUser || !emailPass) {
+      return Response.json(
+        { success: false, error: 'EMAIL_USER and EMAIL_PASS environment variables are required' },
+        { status: 500 }
+      );
+    }
+
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+        user: emailUser,
+        pass: emailPass
       }
     });
 
@@ -30,7 +40,7 @@ export async function POST(request: Request) {
     const filedate = date ? date : new Date().toLocaleDateString('en-IN');
 
     await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+      from: emailUser,
       to: email.trim(),
       subject: `Attendance Sheet ${filedate}`,
       text: `Attached is the Attendance Excel Sheet of ${filedate}.`,
