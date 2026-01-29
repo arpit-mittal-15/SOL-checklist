@@ -5,10 +5,11 @@ import Image from 'next/image';
 import { ArrowLeft, BarChart3, Database, CheckCircle2, MailCheck, Package, Users, Activity, Box, AlertTriangle, ChevronDown, UserCheck, Download, X, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import TechLoader from '@/components/TechLoader'; // Import new loader
-import AttendanceLineGraph from "@/components/AttendanceLineGraph";
+import AttendanceLineGraph from "@/components/views/AttendanceLineGraph";
 
 export default function Dashboard() {
 
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('attendance');
   const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
@@ -22,6 +23,11 @@ export default function Dashboard() {
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const[filedate, setFileDate] = useState('')
   const [emailNotification, setEmailNotification] = useState<{ show: boolean; type: 'loading' | 'success' | 'error'; message: string } | null>(null);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [emailInput, setEmailInput] = useState('');
+  const emailDialogRef = useRef<HTMLDivElement>(null);
+  const emailButtonRef = useRef<HTMLDivElement>(null);
+  const [emailDialogPosition, setEmailDialogPosition] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
     async function fetchAttendance() {
@@ -51,6 +57,50 @@ export default function Dashboard() {
     fetchAttendance();
   }, []);
 
+  // Scheduled email check (runs every minute to check if it's 3:00 PM IST)
+  useEffect(() => {
+    const checkScheduledEmail = async () => {
+      const now = new Date();
+      // Convert to IST (UTC+5:30)
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      const utcTime = now.getTime() + (now.getTimezoneOffset() * 60 * 1000);
+      const istDate = new Date(utcTime + istOffset);
+      
+      const currentHour = istDate.getHours();
+      const currentMinute = istDate.getMinutes();
+      
+      // Check if it's exactly 4:00 PM IST
+      if (currentHour === 16 && currentMinute === 0) {
+        try {
+          console.log('🕒 Scheduled email time detected (4:00 PM IST). Triggering scheduled email...');
+          const response = await fetch('/api/scheduled-email', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          });
+          const result = await response.json();
+          
+          if (result.success) {
+            console.log('✅ Scheduled email sent successfully:', result.message);
+          } else {
+            console.log('ℹ️ Scheduled email:', result.message);
+          }
+        } catch (error) {
+          console.error('❌ Error triggering scheduled email:', error);
+        }
+      }
+    };
+
+    // Check immediately
+    checkScheduledEmail();
+    
+    // Then check every minute
+    const interval = setInterval(checkScheduledEmail, 60000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
   // Calculate dropdown position when it opens
   useEffect(() => {
     if (showAttendanceDropdown && attendanceButtonRef.current) {
@@ -61,6 +111,17 @@ export default function Dashboard() {
       });
     }
   }, [showAttendanceDropdown]);
+
+  // Calculate email dialog position when it opens
+  useEffect(() => {
+    if (showEmailDialog && emailButtonRef.current) {
+      const rect = emailButtonRef.current.getBoundingClientRect();
+      setEmailDialogPosition({
+        top: rect.top + window.scrollY,
+        left: rect.right + window.scrollX + 8
+      });
+    }
+  }, [showEmailDialog]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -84,6 +145,29 @@ export default function Dashboard() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showAttendanceDropdown]);
+
+  // Close email dialog when clicking outside (backdrop handles this, but keeping for consistency)
+  useEffect(() => {
+    if (!showEmailDialog) return;
+    
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      // Check if click is outside both the button and the dialog
+      if (!target.closest('.email-button-container') && !target.closest('.email-dialog-menu')) {
+        closeEmailDialog();
+      }
+    };
+    
+    // Small delay to prevent immediate close on button click
+    const timer = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 100);
+    
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showEmailDialog]);
 
   // PDF Generation Function - ALWAYS DOWNLOADS
   const handleDownloadPDF = async () => {
@@ -287,9 +371,40 @@ export default function Dashboard() {
     }
   };
 
-  const email = 'sakshamsriv09@gmail.com';
+  const openEmailDialog = () => {
+    setShowEmailDialog(true);
+    setEmailInput('');
+  };
 
-  const sendEmailHandler = async () => {
+  const closeEmailDialog = () => {
+    setShowEmailDialog(false);
+    setEmailInput('');
+  };
+
+  const sendEmailHandler = async (recipientEmail?: string) => {
+    const emailToSend = recipientEmail || emailInput;
+    
+    if (!emailToSend || !emailToSend.trim()) {
+      setEmailNotification({ show: true, type: 'error', message: 'Please enter a valid email address.' });
+      setTimeout(() => {
+        setEmailNotification(null);
+      }, 4000);
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailToSend.trim())) {
+      setEmailNotification({ show: true, type: 'error', message: 'Please enter a valid email address.' });
+      setTimeout(() => {
+        setEmailNotification(null);
+      }, 4000);
+      return;
+    }
+
+    // Close dialog
+    closeEmailDialog();
+    
     // Show loading state immediately
     setEmailNotification({ show: true, type: 'loading', message: 'Sending email...' });
     
@@ -298,14 +413,17 @@ export default function Dashboard() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'filedate': filedate
-        }
+        },
+        body: JSON.stringify({
+          filedate: filedate,
+          email: emailToSend.trim()
+        })
       });
       const result = await response.json();
       if (result.success) {
-        setEmailNotification({ show: true, type: 'success', message: 'Email sent successfully!' });
+        setEmailNotification({ show: true, type: 'success', message: `Email sent successfully to ${emailToSend.trim()}!` });
       } else {
-        setEmailNotification({ show: true, type: 'error', message: 'Failed to send email.' });
+        setEmailNotification({ show: true, type: 'error', message: result.error || 'Failed to send email.' });
       }
       // Auto-hide notification after 4 seconds
       setTimeout(() => {
@@ -319,6 +437,7 @@ export default function Dashboard() {
       }, 4000);
     }
   };
+
 
   // Helper function to generate text-based PDF with proper tables
   const generateTextPDF = (pdf: any, sectionName: string, date: string) => {
@@ -604,10 +723,84 @@ export default function Dashboard() {
                 active={activeTab === 'equal'} 
                 onClick={() => setActiveTab('equal')} 
             />
-            <div onClick={sendEmailHandler} className='py-2 px-2 flex items-center cursor-pointer bg-[#263247e0] rounded-xl'>
-                <MailCheck size={32} />
+            <div className="email-button-container">
+                <div 
+                    ref={emailButtonRef}
+                    onClick={openEmailDialog} 
+                    className='py-2 px-2 flex items-center cursor-pointer bg-[#263247e0] rounded-xl hover:bg-[#263247] transition-colors'
+                >
+                    <MailCheck size={32} />
+                </div>
             </div>
         </div>
+
+        {/* Email Dialog - Fixed Position (Outside Nav) */}
+        {showEmailDialog && (
+            <>
+                {/* Backdrop overlay */}
+                <div 
+                    className="fixed inset-0 z-[9998] bg-black/20"
+                    onClick={closeEmailDialog}
+                />
+                
+                {/* Email Dialog */}
+                <div 
+                    ref={emailDialogRef}
+                    className="email-dialog-menu fixed z-[9999] bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden min-w-[320px] animate-in fade-in slide-in-from-left-2 duration-200"
+                    style={{
+                        top: `${emailDialogPosition.top}px`,
+                        left: `${emailDialogPosition.left}px`,
+                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3)'
+                    }}
+                >
+                    {/* Header */}
+                    <div className="px-5 py-3.5 border-b border-slate-700/50 bg-gradient-to-r from-blue-600/10 to-purple-600/10">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <MailCheck size={18} className="text-blue-400" />
+                                <span className="text-sm font-bold text-slate-200 uppercase tracking-wider">Send Email</span>
+                            </div>
+                            <button
+                                onClick={closeEmailDialog}
+                                className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-5 space-y-4">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                                Recipient Email
+                            </label>
+                            <input
+                                type="email"
+                                value={emailInput}
+                                onChange={(e) => setEmailInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        sendEmailHandler();
+                                    }
+                                }}
+                                placeholder="Enter email address"
+                                className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                autoFocus
+                            />
+                        </div>
+                        
+                        <button
+                            onClick={() => sendEmailHandler()}
+                            className="w-full px-5 py-3 text-sm font-bold transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600/20 to-purple-600/20 hover:from-blue-600/30 hover:to-purple-600/30 text-blue-400 hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg border border-blue-600/30 hover:border-blue-500/50 shadow-lg shadow-blue-900/20"
+                        >
+                            <MailCheck size={16} />
+                            Send Email
+                        </button>
+                    </div>
+                </div>
+            </>
+        )}
 
         {/* Professional Attendance Dropdown Menu - Fixed Position */}
         {showAttendanceDropdown && (

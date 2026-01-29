@@ -5,6 +5,16 @@ const FILE_URL = "https://docs.google.com/spreadsheets/d/13UUl-aSWn86eW0ixwLOxBG
 
 export async function POST(request) {
   try {
+    const body = await request.json();
+    const { filedate: date, email } = body;
+
+    if (!email || !email.trim()) {
+      return Response.json(
+        { success: false, error: 'Email address is required' },
+        { status: 400 }
+      );
+    }
+
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -17,13 +27,11 @@ export async function POST(request) {
       responseType: "arraybuffer"
     });
 
-    const date = request.headers.get('filedate');
-
     const filedate = date ? date : new Date().toLocaleDateString('en-IN');
 
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
-      to: "suckzhum@gmail.com",
+      to: email.trim(),
       subject: `Attendance Sheet ${filedate}`,
       text: `Attached is the Attendance Excel Sheet of ${filedate}.`,
       attachments: [

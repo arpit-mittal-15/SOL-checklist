@@ -22,12 +22,11 @@ async function getLatestFileId() {
   const csv = await res.text();
  
   console.log('✅ Index CSV fetched, length:', csv.length);
-  console.log('First 500 chars:', csv.substring(0, 500));
 
   const { data } = Papa.parse(csv, { header: true });
   console.log('📊 Total rows parsed:', data.length);
   console.log('Sample rows:', data.slice(0, 3));
-
+  console.log('FULL DATA' + ':', data); // file
   const normalized = data.map((row: any) => ({
     name: row.Name?.trim(),
     fileId: row.FileId?.trim(),
